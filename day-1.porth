@@ -1,0 +1,48 @@
+include "std.porth"
+
+const BUFFER_CAP 1024 end
+memory buffer BUFFER_CAP end
+memory last sizeof(int) end
+memory current sizeof(int) end
+memory counter sizeof(int) end
+
+-1 last !64
+while BUFFER_CAP buffer stdin read dup 0 > do
+  // read_size
+  0 while 2dup > do
+    // read_size index
+    dup buffer +ptr @8
+
+    // read_size index digit
+    dup 10 = if
+      drop
+
+      current @64
+      last @64
+      // read_size index current last
+      dup -1 = if
+      	// no previous measurement
+	drop
+      else
+	over < if
+	  counter @64 1 + counter !64
+	end
+      end
+      // read_size index current
+
+      last !64
+      0 current !64
+
+      // read_size index
+    else
+      // read_size index digit
+      '0' -
+      current @64 10 * + current !64
+    end
+
+    1 +
+    // read_size index
+  end drop drop
+end drop
+
+counter @64 print
