@@ -9,68 +9,51 @@ memory counter sizeof(int) end
 memory window_sum sizeof(int) end
 memory window_counter sizeof(int) end
 
-0 last !64
-0 last2 !64
 while BUFFER_CAP buffer stdin read dup 0 > do
   // read_size
   0 while 2dup > do
     // read_size index
+
     dup buffer +ptr @8
 
     // read_size index digit
-    dup 10 = if
-      drop
+    dup 10 = if drop // new line
+      // read_size index
 
-      current @64
-      last @64
+      current @64 last @64
       // read_size index current last
-      dup 0 = if
-      	// no previous measurement
-      else
+      dup 0 != if // has previous measurement
+
 	// BEGIN PART 1
-	2dup > if
-	  counter @64 1 + counter !64
-	end
+	2dup > if counter @64 1 + counter !64 end
 	// END PART 1
 
 	// BEGIN PART 2
-        // read_size index current last
-	2dup
-	+
-	last2 @64
+	// read_size index current last
+	2dup + last2 @64
 	// read_size index current last (sum-last2) last2
-	dup 0 = if
-	  // haven't filled window yet
-	  2drop
+	dup 0 = if 2drop // haven't filled window yet
 	else
-	  +
-	  window_sum @64
+	  + window_sum @64
 	  // read_size index current last sum last_sum
-	  dup 0 = if
-	    // no previous sum
-	    drop
+	  dup 0 = if drop // no previous sum
 	  else
-	    over < if
-	      window_counter @64 1 + window_counter !64
-	    end
+	    over < if window_counter @64 1 + window_counter !64 end
 	  end
 	  // read_size index current last sum
-
 	  window_sum !64
 	end
 	// END PART 2
+
       end
       // read_size index current last
-
-      last2 !64
-      last !64
-      0 current !64
+      last2 !64 last !64 0 current !64
 
       // read_size index
-    else
+    else // not newline, add digit to stored int
       // read_size index digit
-      '0' -
-      current @64 10 * + current !64
+      '0' - current @64 10 * + current !64
+      // read_size index
     end
 
     1 +
