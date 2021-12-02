@@ -6,7 +6,7 @@ memory last sizeof(int) end
 memory current sizeof(int) end
 memory counter sizeof(int) end
 
--1 last !64
+0 last !64
 while BUFFER_CAP buffer stdin read dup 0 > do
   // read_size
   0 while 2dup > do
@@ -20,7 +20,7 @@ while BUFFER_CAP buffer stdin read dup 0 > do
       current @64
       last @64
       // read_size index current last
-      dup -1 = if
+      dup 0 = if
       	// no previous measurement
 	drop
       else
