@@ -24,26 +24,26 @@ while BUFFER_CAP buffer stdin read dup 0 > do
       // read_size index current last
       dup 0 != if // has previous measurement
 
-	// BEGIN PART 1
-	2dup > if counter @64 1 + counter !64 end
-	// END PART 1
+      // BEGIN PART 1
+      2dup > if counter @64 1 + counter !64 end
+      // END PART 1
 
-	// BEGIN PART 2
-	// read_size index current last
-	2dup + last2 @64
-	// read_size index current last (sum-last2) last2
-	dup 0 = if 2drop // haven't filled window yet
-	else
-	  + window_sum @64
-	  // read_size index current last sum last_sum
-	  dup 0 = if drop // no previous sum
-	  else
-	    over < if window_counter @64 1 + window_counter !64 end
-	  end
-	  // read_size index current last sum
-	  window_sum !64
-	end
-	// END PART 2
+      // BEGIN PART 2
+      // read_size index current last
+      2dup + last2 @64
+      // read_size index current last (sum-last2) last2
+      dup 0 = if 2drop // haven't filled window yet
+      else
+        + window_sum @64
+        // read_size index current last sum last_sum
+        dup 0 = if drop // no previous sum
+        else
+          over < if window_counter @64 1 + window_counter !64 end
+        end
+        // read_size index current last sum
+        window_sum !64
+      end
+      // END PART 2
 
       end
       // read_size index current last
