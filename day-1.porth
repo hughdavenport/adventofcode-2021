@@ -3,10 +3,14 @@ include "std.porth"
 const BUFFER_CAP 1024 end
 memory buffer BUFFER_CAP end
 memory last sizeof(int) end
+memory last2 sizeof(int) end
 memory current sizeof(int) end
 memory counter sizeof(int) end
+memory window_sum sizeof(int) end
+memory window_counter sizeof(int) end
 
 0 last !64
+0 last2 !64
 while BUFFER_CAP buffer stdin read dup 0 > do
   // read_size
   0 while 2dup > do
@@ -22,14 +26,43 @@ while BUFFER_CAP buffer stdin read dup 0 > do
       // read_size index current last
       dup 0 = if
       	// no previous measurement
-	drop
       else
-	over < if
+	// BEGIN PART 1
+	2dup > if
 	  counter @64 1 + counter !64
 	end
-      end
-      // read_size index current
+	// END PART 1
 
+	// BEGIN PART 2
+        // read_size index current last
+	2dup
+	+
+	last2 @64
+	// read_size index current last (sum-last2) last2
+	dup 0 = if
+	  // haven't filled window yet
+	  2drop
+	else
+	  +
+	  window_sum @64
+	  // read_size index current last sum last_sum
+	  dup 0 = if
+	    // no previous sum
+	    drop
+	  else
+	    over < if
+	      window_counter @64 1 + window_counter !64
+	    end
+	  end
+	  // read_size index current last sum
+
+	  window_sum !64
+	end
+	// END PART 2
+      end
+      // read_size index current last
+
+      last2 !64
       last !64
       0 current !64
 
@@ -46,3 +79,4 @@ while BUFFER_CAP buffer stdin read dup 0 > do
 end drop
 
 counter @64 print
+window_counter @64 print
