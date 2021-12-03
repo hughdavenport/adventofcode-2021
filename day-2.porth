@@ -4,7 +4,9 @@ const BUFFER_CAP 1024 end
 memory buffer BUFFER_CAP end
 memory first_char sizeof(int) end
 memory x sizeof(int) end
-memory y sizeof(int) end
+memory part1_y sizeof(int) end
+memory part2_y sizeof(int) end
+memory aim sizeof(int) end
 
 while BUFFER_CAP buffer stdin read dup 0 > do
   // len
@@ -21,15 +23,23 @@ while BUFFER_CAP buffer stdin read dup 0 > do
     parse_int
     // len idx_of_next num
     first_char @8 'f' = if // forward
+      dup
       x @64 + x !64
+      aim @64 *
+      part2_y @64 + part2_y !64
     else first_char @8 'd' = if* // down
-      y @64 + y !64
+      dup
+      part1_y @64 + part1_y !64
+      aim @64 + aim !64
     else first_char @8 'u' = if* // up
-      y @64 swap - y !64
+      dup
+      part1_y @64 swap - part1_y !64
+      aim @64 swap - aim !64
     else
       drop // UNKNOWN CODE
     end
     // len idx_of_next
   end drop drop
 end drop
-x @64 y @64 * print
+x @64 part1_y @64 * print
+x @64 part2_y @64 * print
