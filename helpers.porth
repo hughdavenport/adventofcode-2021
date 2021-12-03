@@ -1,0 +1,40 @@
+include "std.porth"
+
+proc parse_int
+    int ptr int // len buf idx
+    --
+    int int // idx ret
+in
+  memory ret sizeof(int) end
+  memory _tmp sizeof(int) end
+  memory _fin sizeof(bool) end
+  0 ret !64
+  false _fin !bool
+
+  // len buf idx
+  _tmp !64 swap _tmp @64
+  // buf len idx
+  while 2dup > _fin @bool lnot land do
+    // buf len idx
+    swap _tmp !64 2dup
+    // buf idx buf idx
+    swap +ptr @8
+    // buf idx dig
+    dup isdigit lnot if drop // not a digit
+      // buf idx
+      true _fin !bool
+      // buf idx
+    else // not newline, add digit to stored int
+      // buf idx dig
+      '0' - ret @64 10 * + ret !64
+      // buf idx
+    end
+
+    _tmp @64 swap
+    1 +
+    // buf len idx
+  end
+  // buf len idx
+  swap drop swap drop ret @64
+  // idx ret
+end
