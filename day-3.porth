@@ -1,0 +1,65 @@
+include "std.porth"
+
+const BUFFER_CAP 1024 end
+memory buffer BUFFER_CAP end
+memory count_ones sizeof(int) 12 * end // bitstring in input is 12 digits
+memory x sizeof(int) end
+memory y sizeof(int) end
+memory len sizeof(int) end
+memory gamma sizeof(int) end
+memory epsilon sizeof(int) end
+
+proc index_array int ptr -- ptr in // idx arr
+  swap sizeof(int) * swap +ptr
+end
+
+proc write_array int int ptr in // val idx arr
+  index_array !64
+end
+
+proc read_array int ptr -- int in // idx arr
+  index_array @64
+end
+
+while BUFFER_CAP buffer stdin read dup 0 > do
+  // read_len
+  0 while 2dup > do
+    // read_len idx
+    dup buffer +ptr @8
+    // read_len idx digit
+    dup '\n' = if
+      x @64 len !64
+      0 x !64
+      y @64 1 + y !64
+    else dup '0' = if*
+      x @64 1 + x !64
+    else dup '1' = if*
+      // read_len idx digit
+      x @64 count_ones read_array 1 + x @64 count_ones write_array
+      x @64 1 + x !64
+    end drop
+
+    1 +
+    // read_len idx
+  end drop drop
+  // read_len
+end drop
+
+len @64 0 while 2dup > do
+  // len idx
+  dup count_ones read_array
+  // len idx ones
+  y @64 2 /
+  // len idx ones y/2
+  > if
+    gamma @64 2 * 1 + gamma !64
+    epsilon @64 2 * epsilon !64
+  else
+    gamma @64 2 * gamma !64
+    epsilon @64 2 * 1 + epsilon !64
+  end
+
+  1 +
+end drop drop
+
+gamma @64 epsilon @64 * print
