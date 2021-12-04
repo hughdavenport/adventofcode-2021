@@ -8,18 +8,45 @@ memory y sizeof(int) end
 memory len sizeof(int) end
 memory gamma sizeof(int) end
 memory epsilon sizeof(int) end
+memory data sizeof(int) 12 * 1000 * end // input is 12*1000
+memory ones sizeof(int) end
+memory current_keep sizeof(ptr) 3 * end // store keep, len, tgt
+memory oxy_keep sizeof(bool) 1000 * end // input has 1000 records
+memory co2_keep sizeof(bool) 1000 * end // input has 1000 records
+memory len(oxy_keep) sizeof(int) end
+memory len(co2_keep) sizeof(int) end
+memory oxy sizeof(int) end
+memory co2 sizeof(int) end
 
-proc index_array int ptr -- ptr in // idx arr
+proc index_int_array int ptr -- ptr in // idx arr
   swap sizeof(int) * swap +ptr
 end
 
-proc write_array int int ptr in // val idx arr
-  index_array !64
+proc index_bool_array int ptr -- ptr in // idx arr
+  swap sizeof(bool) * swap +ptr
 end
 
-proc read_array int ptr -- int in // idx arr
-  index_array @64
+proc write_int_array int int ptr in // val idx arr
+  index_int_array !64
 end
+
+proc read_int_array int ptr -- int in // idx arr
+  index_int_array @64
+end
+
+proc write_bool_array bool int ptr in // val idx arr
+  index_bool_array !bool
+end
+
+proc read_bool_array int ptr -- bool in // idx arr
+  index_bool_array @bool
+end
+
+1000 0 while 2dup > do
+  true over oxy_keep write_bool_array
+  true over co2_keep write_bool_array
+  1 +
+end drop drop
 
 while BUFFER_CAP buffer stdin read dup 0 > do
   // read_len
@@ -32,10 +59,12 @@ while BUFFER_CAP buffer stdin read dup 0 > do
       0 x !64
       y @64 1 + y !64
     else dup '0' = if*
+      0 y @64 len @64 * x @64 + data write_int_array
       x @64 1 + x !64
     else dup '1' = if*
       // read_len idx digit
-      x @64 count_ones read_array 1 + x @64 count_ones write_array
+      1 y @64 len @64 * x @64 + data write_int_array
+      x @64 count_ones read_int_array 1 + x @64 count_ones write_int_array
       x @64 1 + x !64
     end drop
 
@@ -47,7 +76,7 @@ end drop
 
 len @64 0 while 2dup > do
   // len idx
-  dup count_ones read_array
+  dup count_ones read_int_array
   // len idx ones
   y @64 2 /
   // len idx ones y/2
@@ -63,3 +92,86 @@ len @64 0 while 2dup > do
 end drop drop
 
 gamma @64 epsilon @64 * print
+
+y @64 len(oxy_keep) !64
+y @64 len(co2_keep) !64
+oxy_keep current_keep !ptr
+len(oxy_keep) 1 sizeof(ptr) * current_keep +ptr !ptr
+oxy 2 sizeof(ptr) * current_keep +ptr !ptr
+
+0 while dup 2 < do
+  // outer
+  dup 1 = if
+    co2_keep current_keep !ptr
+    len(co2_keep) 1 sizeof(ptr) * current_keep +ptr !ptr
+    co2 2 sizeof(ptr) * current_keep +ptr !ptr
+  end
+
+  0 while dup len @64 < do // for each digit
+    // outer x
+    0 ones !64
+    0 while dup y @64 < do // for each line
+      // outer x y
+      dup current_keep @ptr read_bool_array if // is it selected?
+        // outer x y
+        2dup len @64 * + data read_int_array
+        // outer x y digit
+        1 = if ones @64 1 + ones !64 end
+        // outer x y
+      end
+      1 +
+      // outer x y
+    end drop
+
+    // outer x
+    ones @64 1 sizeof(ptr) * current_keep +ptr @ptr @64 1 + 2 / >= if over else over 1 + 2 % end
+    // outer x search
+    over while dup y @64 len @64 * < do
+      // outer x search idx
+      dup len @64 / current_keep @ptr read_bool_array if
+        // outer x search idx
+        over over data read_int_array
+        // outer x search idx search digit
+        = if
+  	// outer x search idx
+  	1 sizeof(ptr) * current_keep +ptr dup @ptr @64 1 - swap @ptr !64
+  	false over len @64 / current_keep @ptr write_bool_array
+        end
+        // outer x search idx
+      end
+      len @64 +
+      // outer x search idx
+    end drop drop
+
+    // outer x
+    1 sizeof(ptr) * current_keep +ptr @ptr @64 1 = if
+      // outer x
+      0 while dup y @64 < do
+        // outer x y
+        dup current_keep @ptr read_bool_array if
+  	// outer x y
+          dup len @64 * while 2dup swap 1 + len @64 * < do // each digit
+            // outer x y idx
+            dup data read_int_array
+            // outer x y idx digit
+            2 sizeof(ptr) * current_keep +ptr swap over @ptr @64 2 * + swap @ptr !64
+            1 +
+          end drop
+        end
+        1 +
+        // outer x y
+      end drop
+      drop len @64
+      // outer end_of_x (basically break inner)
+    end
+
+    1 +
+    // outer x
+  end drop
+
+  1 +
+  // outer
+end drop
+
+oxy @64 co2 @64 * print
+
