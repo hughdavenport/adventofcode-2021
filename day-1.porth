@@ -1,17 +1,14 @@
 include "helpers.porth"
 
-const BUFFER_CAP 1024 end
-memory buffer BUFFER_CAP end
-memory last sizeof(int) end
 memory last2 sizeof(int) end
 memory counter sizeof(int) end
 memory window_sum sizeof(int) end
 memory window_counter sizeof(int) end
 
+0
 while eof? lnot do
-  parse_int_from_buffer
-  // num
-  last @64
+  // last
+  parse_int_from_buffer swap
   // num last
   dup 0 != if // has previous measurement
 
@@ -38,9 +35,10 @@ while eof? lnot do
 
     // num last
   end
-  // num last
-  last2 !64 last !64
-end
+  // num last (-> last2 last)
+  last2 !64
+  // last
+end drop
 
 counter @64 print
 window_counter @64 print

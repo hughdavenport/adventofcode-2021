@@ -1,8 +1,5 @@
 include "helpers.porth"
 
-const BUFFER_CAP 1024 end
-memory buffer BUFFER_CAP end
-memory first_char sizeof(int) end
 memory x sizeof(int) end
 memory part1_y sizeof(int) end
 memory part2_y sizeof(int) end
