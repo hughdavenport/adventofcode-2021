@@ -82,3 +82,34 @@ proc parse_int_from_buffer -- int in
   parse_int
   swap stdin_buffer_idx !64
 end
+
+proc eof? -- bool in
+  refill_buffer_if_empty
+  len(stdin_buffer) @64 stdin_buffer_idx @64 -
+  0 =
+end
+
+proc a[i] int ptr -- ptr in
+  swap sizeof(int) * swap +ptr
+end
+
+proc !a[i] int int ptr in
+  a[i] !64
+end
+
+proc @a[i] int ptr -- int in
+  a[i] @64
+end
+
+proc min_max int int -- int int in
+  2dup
+  max swap
+  // a max b
+  2dup = if
+    drop
+    // a max  --  (b=max)
+  else
+    swap rot drop
+    // b max  --  (b!=max)
+  end
+end

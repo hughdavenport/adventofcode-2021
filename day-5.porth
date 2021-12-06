@@ -1,0 +1,82 @@
+include "helpers.porth"
+
+const CELL_SIZE sizeof(int) end
+const N 1000 end // input looks to only go up to 1000x1000
+memory board CELL_SIZE N N * * end
+proc board[i] int -- ptr in board a[i] end
+proc !board[i] int int in board !a[i] end
+proc @board[i] int -- int in board @a[i] end
+
+proc set_line in
+  parse_int_from_buffer
+  parse_int_from_buffer
+  2dup N * +
+  // x1 y1 idx1
+  rot rot swap
+  // idx1 y1 x1
+  parse_int_from_buffer
+  // idx1 y1 x1 x2
+  dup rot = swap rot
+  // idx1 same_col? x2 y1
+  parse_int_from_buffer
+  // idx1 col? x2 y1 y2
+  dup rot = swap rot
+  // idx1 col? same_row? y2 x2
+  swap N * +
+  // idx1 col? row? idx2
+  rot rot
+  // idx1 idx2 col? row?
+  if // same column, so move by chunks of N
+    // idx1 idx2 row?
+    rot rot
+    // row? idx1 idx2
+    min_max
+    // row? idx1 idx2  -- (idx1 < idx2)
+    while 2dup <= do
+      // row? idx1 idx2
+      dup @board[i] 1 + over !board[i]
+      1 -
+    end
+    // row? idx1 idx2
+    rot
+    // idx1 idx2 row?
+    drop
+  else if* // same row, so move just by 1
+    // idx1 idx2
+    min_max
+    // idx1 idx2  -- (idx1 < idx2)
+    while 2dup <= do
+      dup @board[i] 1 + over !board[i]
+      N -
+    end
+    // idx 1 idx2
+  end
+  drop drop
+end
+
+proc dump-board in
+  "Board State: \n" puts
+  0 while dup N < do
+    // y
+    0 while dup N < do
+      // y x
+      2dup swap N * + @board[i] putu " " puts
+      1 +
+    end drop
+    "\n" puts
+    1 +
+  end drop
+end
+
+while eof? lnot do
+  set_line
+//  dump-board
+end
+0
+// sum
+N N * while dup 0 > do
+  // sum cell
+  dup @board[i] 2 >= if swap 1 + swap end
+  1 -
+end drop
+print
