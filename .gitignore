@@ -1,0 +1,5 @@
+*.asm
+*.o
+day-?
+day-??
+.*.swp
