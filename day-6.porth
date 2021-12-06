@@ -1,0 +1,46 @@
+include "helpers.porth"
+
+const MAX_NUMBER 1000000 end
+memory numbers sizeof(int) MAX_NUMBER * end
+memory len(numbers) sizeof(int) end
+
+proc add_number int -- in
+  len(numbers) @64 numbers !a[i]
+  len(numbers) inc64
+end
+
+proc dump-nums in
+  0 while dup len(numbers) @64 < do
+    dup 0 > if "," puts end
+    dup numbers @a[i] putu
+    1 +
+  end drop
+  "\n" puts
+end
+
+proc simulate_day in
+  len(numbers) @64 0 while 2dup > do
+    // len idx
+    dup numbers @a[i]
+    // len idx num
+    dup 0 = if
+      8 add_number
+      drop 6 over numbers !a[i]
+    else
+      1 - over numbers !a[i]
+    end
+    // len idx
+    1 +
+  end drop drop
+end
+
+while eof? lnot do
+  parse_int_from_buffer add_number
+end
+// "Initial state: " puts dump-nums
+0 while dup 80 < do
+  simulate_day
+  1 +
+//  dup "After " puts putu " days: " puts dump-nums
+end drop
+len(numbers) @64 print
