@@ -1,11 +1,8 @@
-include "std.porth"
+include "helpers.porth"
 
-const BUFFER_CAP 1024 end
-memory buffer BUFFER_CAP end
 memory count_ones sizeof(int) 12 * end // bitstring in input is 12 digits
-memory x sizeof(int) end
-memory y sizeof(int) end
-memory len sizeof(int) end
+memory height sizeof(int) end
+memory width sizeof(int) end
 memory gamma sizeof(int) end
 memory epsilon sizeof(int) end
 memory data sizeof(int) 12 * 1000 * end // input is 12*1000
@@ -18,87 +15,72 @@ memory len(co2_keep) sizeof(int) end
 memory oxy sizeof(int) end
 memory co2 sizeof(int) end
 
-proc index_int_array int ptr -- ptr in // idx arr
-  swap sizeof(int) * swap +ptr
-end
-
-proc index_bool_array int ptr -- ptr in // idx arr
-  swap sizeof(bool) * swap +ptr
-end
-
-proc write_int_array int int ptr in // val idx arr
-  index_int_array !64
-end
-
-proc read_int_array int ptr -- int in // idx arr
-  index_int_array @64
-end
-
-proc write_bool_array bool int ptr in // val idx arr
-  index_bool_array !bool
-end
-
-proc read_bool_array int ptr -- bool in // idx arr
-  index_bool_array @bool
-end
-
 1000 0 while 2dup > do
-  true over oxy_keep write_bool_array
-  true over co2_keep write_bool_array
+  true cast(int) over oxy_keep !a[i]
+  true cast(int) over co2_keep !a[i]
   1 +
 end drop drop
 
-while BUFFER_CAP buffer stdin read dup 0 > do
-  // read_len
-  0 while 2dup > do
-    // read_len idx
-    dup buffer +ptr @8
-    // read_len idx digit
-    dup '\n' = if
-      x @64 len !64
-      0 x !64
-      y @64 1 + y !64
-    else dup '0' = if*
-      0 y @64 len @64 * x @64 + data write_int_array
-      x @64 1 + x !64
-    else dup '1' = if*
-      // read_len idx digit
-      1 y @64 len @64 * x @64 + data write_int_array
-      x @64 count_ones read_int_array 1 + x @64 count_ones write_int_array
-      x @64 1 + x !64
-    end drop
-
-    1 +
-    // read_len idx
-  end drop drop
-  // read_len
-end drop
-
-len @64 0 while 2dup > do
-  // len idx
-  dup count_ones read_int_array
-  // len idx ones
-  y @64 2 /
-  // len idx ones y/2
-  > if
+0 0
+while eof? lnot do
+  // x y
+  next_char
+  // x y digit
+  dup '\n' = if
+    // x y digit
+    rot width !64 0 rot rot
+    swap 1 + swap
+  else dup '0' = if*
+    // x y digit
+    drop 2dup width @64 * + 0 swap data !a[i]
+    // x y
+    swap 1 + swap 0
+    // x y digit
+  else dup '1' = if*
+    // x y digit
+    drop 2dup width @64 * + 1 swap data !a[i]
+    // x y
+    swap
+    dup count_ones a[i]++
+    1 + swap 1
+    // x y digit
+  end drop
+  // x y
+end
+swap drop
+// y
+width @64 0 while 2dup > do
+  // y width idx
+  rot
+  // width idx y
+  over count_ones @a[i]
+  // width idx y ones
+  over 2 / > if
+    // width idx y
     gamma @64 2 * 1 + gamma !64
     epsilon @64 2 * epsilon !64
   else
     gamma @64 2 * gamma !64
     epsilon @64 2 * 1 + epsilon !64
   end
-
+  // width idx y
+  rot rot
+  // y width idx
   1 +
 end drop drop
+// y
 
 gamma @64 epsilon @64 * print
 
-y @64 len(oxy_keep) !64
-y @64 len(co2_keep) !64
+// y
+dup len(oxy_keep) !64
+dup len(co2_keep) !64
 oxy_keep current_keep !ptr
 len(oxy_keep) 1 sizeof(ptr) * current_keep +ptr !ptr
 oxy 2 sizeof(ptr) * current_keep +ptr !ptr
 
+// y
+height !64
 0 while dup 2 < do
   // outer
   dup 1 = if
@@ -107,16 +89,17 @@ oxy 2 sizeof(ptr) * current_keep +ptr !ptr
     co2 2 sizeof(ptr) * current_keep +ptr !ptr
   end
 
-  0 while dup len @64 < do // for each digit
+  // outer
+  0 while dup width @64 < do // for each digit
     // outer x
     0 ones !64
-    0 while dup y @64 < do // for each line
+    0 while dup height @64 < do // for each line
       // outer x y
-      dup current_keep @ptr read_bool_array if // is it selected?
+      dup current_keep @ptr @a[i] cast(bool) if // is it selected?
         // outer x y
-        2dup len @64 * + data read_int_array
+        2dup width @64 * + data @a[i]
         // outer x y digit
-        1 = if ones @64 1 + ones !64 end
+        1 = if ones inc64 end
         // outer x y
       end
       1 +
@@ -126,33 +109,33 @@ oxy 2 sizeof(ptr) * current_keep +ptr !ptr
     // outer x
     ones @64 1 sizeof(ptr) * current_keep +ptr @ptr @64 1 + 2 / >= if over else over 1 + 2 % end
     // outer x search
-    over while dup y @64 len @64 * < do
+    over while dup height @64 width @64 * < do
       // outer x search idx
-      dup len @64 / current_keep @ptr read_bool_array if
+      dup width @64 / current_keep @ptr @a[i] cast(bool) if
         // outer x search idx
-        over over data read_int_array
+        over over data @a[i]
         // outer x search idx search digit
         = if
   	// outer x search idx
   	1 sizeof(ptr) * current_keep +ptr dup @ptr @64 1 - swap @ptr !64
-  	false over len @64 / current_keep @ptr write_bool_array
+  	false cast(int) over width @64 / current_keep @ptr !a[i]
         end
         // outer x search idx
       end
-      len @64 +
+      width @64 +
       // outer x search idx
     end drop drop
 
     // outer x
     1 sizeof(ptr) * current_keep +ptr @ptr @64 1 = if
       // outer x
-      0 while dup y @64 < do
+      0 while dup height @64 < do
         // outer x y
-        dup current_keep @ptr read_bool_array if
+        dup current_keep @ptr @a[i] cast(bool) if
   	// outer x y
-          dup len @64 * while 2dup swap 1 + len @64 * < do // each digit
+          dup width @64 * while 2dup swap 1 + width @64 * < do // each digit
             // outer x y idx
-            dup data read_int_array
+            dup data @a[i]
             // outer x y idx digit
             2 sizeof(ptr) * current_keep +ptr swap over @ptr @64 2 * + swap @ptr !64
             1 +
@@ -161,7 +144,7 @@ oxy 2 sizeof(ptr) * current_keep +ptr !ptr
         1 +
         // outer x y
       end drop
-      drop len @64
+      drop width @64
       // outer end_of_x (basically break inner)
     end
 

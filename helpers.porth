@@ -89,6 +89,12 @@ proc eof? -- bool in
   0 =
 end
 
+proc next_char -- int in
+  refill_buffer_if_empty
+  stdin_buffer_idx @64 stdin_buffer +ptr @8
+  stdin_buffer_idx inc64
+end
+
 proc a[i] int ptr -- ptr in
   swap sizeof(int) * swap +ptr
 end
@@ -99,6 +105,10 @@ end
 
 proc @a[i] int ptr -- int in
   a[i] @64
+end
+
+proc a[i]++ int ptr in
+  a[i] dup @64 1 + swap !64
 end
 
 proc min_max int int -- int int in
