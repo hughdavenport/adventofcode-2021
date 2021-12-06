@@ -8,45 +8,39 @@ memory counter sizeof(int) end
 memory window_sum sizeof(int) end
 memory window_counter sizeof(int) end
 
-while BUFFER_CAP buffer stdin read dup 0 > do
-  // len
-  0 while 2dup > do
-    // len idx
-    over swap buffer swap
-    // len len buf idx
-    parse_int
-    // len idx_of_next num
-    last @64
-    // len idx num last
-    dup 0 != if // has previous measurement
+while eof? lnot do
+  parse_int_from_buffer
+  // num
+  last @64
+  // num last
+  dup 0 != if // has previous measurement
 
-      // BEGIN PART 1
-      2dup > if counter @64 1 + counter !64 end
-      // END PART 1
+    // BEGIN PART 1
+    2dup > if counter @64 1 + counter !64 end
+    // END PART 1
 
-      // BEGIN PART 2
-      // len idx num last
-      2dup + last2 @64
-      // len idx num last (sum-last2) last2
-      dup 0 = if 2drop // haven't filled window yet
+    // BEGIN PART 2
+    // num last
+    2dup + last2 @64
+    // num last (sum-last2) last2
+    dup 0 = if 2drop // haven't filled window yet
+    else
+      + window_sum @64
+      // num last sum last_sum
+      dup 0 = if drop // no previous sum
       else
-        + window_sum @64
-        // len idx num last sum last_sum
-        dup 0 = if drop // no previous sum
-        else
-          over < if window_counter @64 1 + window_counter !64 end
-        end
-        // len idx num last sum
-        window_sum !64
+        over < if window_counter @64 1 + window_counter !64 end
       end
-      // END PART 2
-
+      // num last sum
+      window_sum !64
     end
+    // END PART 2
 
-    last2 !64 last !64
-    // len idx
-  end drop drop
-end drop
+    // num last
+  end
+  // num last
+  last2 !64 last !64
+end
 
 counter @64 print
 window_counter @64 print
