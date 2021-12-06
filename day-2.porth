@@ -8,38 +8,29 @@ memory part1_y sizeof(int) end
 memory part2_y sizeof(int) end
 memory aim sizeof(int) end
 
-while BUFFER_CAP buffer stdin read dup 0 > do
-  // len
-  0 while 2dup > do
-    // len idx
-    over swap
-    // len len idx
-    dup buffer +ptr @8 first_char !8
-    // len len idx
-    buffer swap
-    // len len buf idx
-    while 2dup swap +ptr @8 isdigit lnot do 1 + end
-    // len len buf idx_of_digit
-    parse_int
-    // len idx_of_next num
-    first_char @8 'f' = if // forward
-      dup
-      x @64 + x !64
-      aim @64 *
-      part2_y @64 + part2_y !64
-    else first_char @8 'd' = if* // down
-      dup
-      part1_y @64 + part1_y !64
-      aim @64 + aim !64
-    else first_char @8 'u' = if* // up
-      dup
-      part1_y @64 swap - part1_y !64
-      aim @64 swap - aim !64
-    else
-      drop // UNKNOWN CODE
-    end
-    // len idx_of_next
-  end drop drop
-end drop
+while eof? lnot do
+  stdin_buffer_idx @64 stdin_buffer +ptr @8
+  // c
+  parse_int_from_buffer
+  // c num
+  over 'f' = if // forward
+    dup
+    x @64 + x !64
+    aim @64 *
+    part2_y @64 + part2_y !64
+  else over 'd' = if* // down
+    dup
+    part1_y @64 + part1_y !64
+    aim @64 + aim !64
+  else over 'u' = if* // up
+    dup
+    part1_y @64 swap - part1_y !64
+    aim @64 swap - aim !64
+  else
+    drop // UNKNOWN CODE
+  end
+  // c
+  drop
+end
 x @64 part1_y @64 * print
 x @64 part2_y @64 * print
