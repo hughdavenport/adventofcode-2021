@@ -1,5 +1,10 @@
 include "std.porth"
 
+const STDIN_BUFFER_MAX 10240 end
+memory stdin_buffer STDIN_BUFFER_MAX end
+memory len(stdin_buffer) sizeof(int) end
+memory stdin_buffer_idx sizeof(int) end
+
 proc parse_int
     int ptr int // len buf idx
     --
@@ -24,7 +29,7 @@ in
       // buf idx
       true _fin !bool
       // buf idx
-    else // not newline, add digit to stored int
+    else // is a digit, add digit to stored int
       // buf idx dig
       '0' - ret @64 10 * + ret !64
       // buf idx
@@ -37,4 +42,43 @@ in
   // buf len idx
   swap drop swap drop ret @64
   // idx ret
+end
+
+proc refill_buffer_if_empty in
+  len(stdin_buffer) @64 stdin_buffer_idx @64 -
+  dup 0 = if
+    0 stdin_buffer_idx !64 0 len(stdin_buffer) !64
+  end
+  dup 100 < if // only refill if not much left
+    // len_of_existing
+    dup stdin_buffer_idx @64 stdin_buffer +ptr stdin_buffer memcpy drop // size, src, dest -> dest
+    0 stdin_buffer_idx !64
+    dup len(stdin_buffer) !64
+    // len_of_existing
+    dup STDIN_BUFFER_MAX swap -
+    // len_of_existing len_to_read
+    over stdin_buffer +ptr
+    // len_of_existing len_to_read buffer_to_read
+    stdin read len(stdin_buffer) @64 + len(stdin_buffer) !64
+  end drop
+end
+
+proc skip_nondigit_from_buffer -- in
+  stdin_buffer_idx @64 while dup len(stdin_buffer) @64 < do
+    dup stdin_buffer +ptr @8
+    isdigit if
+      stdin_buffer_idx !64
+      len(stdin_buffer) @64 // break
+    end
+    1 +
+  end drop
+end
+
+proc parse_int_from_buffer -- int in
+  skip_nondigit_from_buffer
+  refill_buffer_if_empty
+  skip_nondigit_from_buffer
+  len(stdin_buffer) @64 stdin_buffer stdin_buffer_idx @64
+  parse_int
+  swap stdin_buffer_idx !64
 end

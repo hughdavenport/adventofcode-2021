@@ -1,0 +1,179 @@
+include "helpers.porth"
+
+const BUFFER_CAP 1024 end
+const BOARD_SIZE 5 5 * end
+const BOARD_CELL_SIZE sizeof(int) sizeof(bool) + end
+memory buffer BUFFER_CAP end
+memory numbers sizeof(int) 100 * end // input has 100 in it
+memory len(numbers) sizeof(int) end
+memory boards BOARD_SIZE BOARD_CELL_SIZE * 100 * end // input has 100 boards in it
+memory len(boards) sizeof(int) end
+memory p sizeof(ptr) end
+memory score sizeof(int) end
+boards p !ptr
+
+proc read_numbers in
+  BUFFER_CAP buffer stdin read
+  // len
+  0 while 2dup > do
+    // len idx
+    dup buffer +ptr @8 10 = if // newline, store rest in buffer
+      // len idx
+      2dup - over buffer +ptr stdin_buffer_idx @64 stdin_buffer +ptr memcpy drop
+      2dup - len(stdin_buffer) @64 + len(stdin_buffer) !64
+      drop drop
+      1 1 // break
+    else
+      over swap buffer swap parse_int
+      // len idx_of_next num
+      len(numbers) @64 sizeof(int) * numbers +ptr !64
+      len(numbers) @64 1 + len(numbers) !64
+    end
+    // len idx
+  end drop drop
+end
+
+proc dump_numbers in
+  "numbers: " puts
+  0 while dup len(numbers) @64 < do
+    dup sizeof(int) * numbers +ptr @64 putu
+    " " puts
+    1 +
+  end drop
+  "\n" puts
+end
+
+proc read_board -- bool in
+  refill_buffer_if_empty
+  len(stdin_buffer) @64 0 != if
+    0 while dup 25 < do
+      parse_int_from_buffer
+      p @ptr !64
+      BOARD_CELL_SIZE p @ptr +ptr p !ptr
+      1 +
+    end drop
+    len(boards) @64 1 + len(boards) !64
+    true
+  else
+    false
+  end
+end
+
+proc dump_board int in // board_id
+  "dumping board id " puts dup print
+  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
+  // base_p
+  0 while dup BOARD_SIZE < do
+    // base_p idx
+    2dup BOARD_CELL_SIZE * swap +ptr
+    // base_p idx cell_p
+    dup @64
+    swap sizeof(int) swap +ptr @bool if
+      "(" puts putu ")" puts
+    else
+      " " puts putu " " puts
+    end
+    1 +
+    dup 5 % 0 = if
+      "\n" puts
+    else
+      " " puts
+    end
+  end drop drop
+end
+
+proc has_row ptr -- bool in
+  // cell_p
+  dup sizeof(int) swap +ptr @bool
+  over BOARD_CELL_SIZE 1 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 2 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 3 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 4 * sizeof(int) + swap +ptr @bool land
+  swap drop
+end
+
+proc has_col ptr -- bool in
+  // cell_p
+  dup sizeof(int) swap +ptr @bool
+  over BOARD_CELL_SIZE 5 * 1 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 5 * 2 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 5 * 3 * sizeof(int) + swap +ptr @bool land
+  over BOARD_CELL_SIZE 5 * 4 * sizeof(int) + swap +ptr @bool land
+  swap drop
+end
+
+proc is_bingo int -- bool in
+  // board_idx
+  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
+  // cell_p
+  false swap
+  // ret cell_p
+  0 while dup 5 < do // rows and cols
+    // ret cell_p idx
+    2dup BOARD_CELL_SIZE 5 * * swap +ptr has_row if
+      // ret cell_p idx
+      drop drop drop
+      true 0 cast(ptr) 5 // break true
+    else 2dup BOARD_CELL_SIZE * swap +ptr has_col if*
+      // ret cell_p idx
+      drop drop drop
+      true 0 cast(ptr) 5 // break true
+    end
+    // ret cell_p idx
+    1 +
+  end drop drop
+end
+
+proc get_score int in // board_id
+  // board_idx
+  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
+  // base_p
+  0 while dup 25 < do
+    // base_p idx
+    2dup BOARD_CELL_SIZE * swap +ptr
+    // base_p idx cell_p
+    sizeof(int) over +ptr @bool lnot if
+      @64 score @64 + score !64
+    else drop end
+    // base_p idx
+    1 +
+  end drop drop
+end
+
+read_numbers
+0 while dup 100 < do
+  read_board drop
+  1 +
+end drop
+
+0 while dup len(numbers) @64 < do // for each number
+  // num_idx
+  dup sizeof(int) * numbers +ptr @64
+  // num_idx num
+  boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do
+    // num_idx num cell_p
+    swap over @64
+    // num_idx cell_p num cell
+    over = if
+      // num_idx cell_p num
+      over sizeof(int) swap +ptr true swap !bool
+    end
+    // num_idx cell_p num
+    swap
+    BOARD_CELL_SIZE swap +ptr
+  end drop
+  // num_idx num
+  0 while dup len(boards) @64 < do
+    // num_idx num board_idx
+    dup is_bingo if
+      dup get_score
+      over score @64 * print
+      // num_idx num board_idx
+      drop drop drop
+      len(numbers) @64 0 len(boards) @64 // break
+    end
+    1 +
+  end drop
+  drop
+  1 +
+end drop
