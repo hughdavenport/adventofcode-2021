@@ -10,6 +10,7 @@ memory boards BOARD_SIZE BOARD_CELL_SIZE * 100 * end // input has 100 boards in 
 memory len(boards) sizeof(int) end
 memory p sizeof(ptr) end
 memory score sizeof(int) end
+memory bingos sizeof(bool) 100 * end // input has 100 boards in it
 boards p !ptr
 
 proc read_numbers in
@@ -125,6 +126,7 @@ proc is_bingo int -- bool in
 end
 
 proc get_score int in // board_id
+  0 score !64
   // board_idx
   BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
   // base_p
@@ -165,12 +167,14 @@ end drop
   // num_idx num
   0 while dup len(boards) @64 < do
     // num_idx num board_idx
-    dup is_bingo if
+    dup is_bingo over sizeof(bool) * bingos +ptr @bool lnot land if
       dup get_score
-      over score @64 * print
+      over score @64 * print // Part 1 is first, part 2 is last
       // num_idx num board_idx
-      drop drop drop
-      len(numbers) @64 0 len(boards) @64 // break
+      true over sizeof(bool) * bingos +ptr !bool
+// part 2 wants the last board to win, so keep going
+//      drop drop drop
+//      len(numbers) @64 0 len(boards) @64 // break
     end
     1 +
   end drop
