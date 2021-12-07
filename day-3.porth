@@ -15,146 +15,116 @@ memory len(co2_keep) sizeof(int) end
 memory oxy sizeof(int) end
 memory co2 sizeof(int) end
 
+proc @data[x][y] int int -- int in // x y -> ret
+  width @64 * + data @a[i]
+end
+
+proc !data[x][y] int int int in // val x y
+  width @64 * + data !a[i]
+end
+
+0 0 // stk: x y
+while eof? lnot do
+  next_char // stk: x y digit
+  dup '\n' = if drop // stk: x y
+    swap width !64 0 swap // save x to width, reset 0
+    1 + // increment y
+  else dup '0' = if* drop // stk: x y
+    2dup 0 rot rot !data[x][y] // save 0 to data[x][y]
+    swap 1 + swap // increment x
+  else dup '1' = if* drop // stk: x y
+    2dup 1 rot rot !data[x][y] // save 1 to data[x][y]
+    swap dup count_ones a[i]++ // increment counts of 1's at column x
+    1 + swap // increment x
+  else drop // UNKNOWN DIGIT, stk: x y
+  end
+  // stk: x y
+end swap drop // stk: y (-> height)
+
+width @64 0 while 2dup > do // stk: height width x
+  rot over count_ones @a[i] // stk: width x height ones
+  over 2 / > if // 1 is the most common bit in column x
+    // Add digit 1 to gamma, and 0 to epsilon
+    gamma @64 2 * 1 + gamma !64
+    epsilon @64 2 * epsilon !64
+  else
+    // Add digit 0 to gamma, and 1 to epsilon
+    gamma @64 2 * gamma !64
+    epsilon @64 2 * 1 + epsilon !64
+  end // stk: width x height
+  rot rot // stk: height width x
+  1 +
+end drop drop // stk: height
+
+// Print part 1
+gamma @64 epsilon @64 * print
+
+// Store height in length of keep variables (i.e. keep all rows)
+dup len(oxy_keep) !64
+dup len(co2_keep) !64
 1000 0 while 2dup > do
   true cast(int) over oxy_keep !a[i]
   true cast(int) over co2_keep !a[i]
   1 +
 end drop drop
 
-0 0
-while eof? lnot do
-  // x y
-  next_char
-  // x y digit
-  dup '\n' = if
-    // x y digit
-    rot width !64 0 rot rot
-    swap 1 + swap
-  else dup '0' = if*
-    // x y digit
-    drop 2dup width @64 * + 0 swap data !a[i]
-    // x y
-    swap 1 + swap 0
-    // x y digit
-  else dup '1' = if*
-    // x y digit
-    drop 2dup width @64 * + 1 swap data !a[i]
-    // x y
-    swap
-    dup count_ones a[i]++
-    1 + swap 1
-    // x y digit
-  end drop
-  // x y
-end
-swap drop
-// y
-width @64 0 while 2dup > do
-  // y width idx
-  rot
-  // width idx y
-  over count_ones @a[i]
-  // width idx y ones
-  over 2 / > if
-    // width idx y
-    gamma @64 2 * 1 + gamma !64
-    epsilon @64 2 * epsilon !64
-  else
-    gamma @64 2 * gamma !64
-    epsilon @64 2 * 1 + epsilon !64
-  end
-  // width idx y
-  rot rot
-  // y width idx
-  1 +
-end drop drop
-// y
-
-gamma @64 epsilon @64 * print
-
-// y
-dup len(oxy_keep) !64
-dup len(co2_keep) !64
+// First time through we look at oxygen
 oxy_keep current_keep !ptr
-len(oxy_keep) 1 sizeof(ptr) * current_keep +ptr !ptr
+len(oxy_keep) sizeof(ptr) current_keep +ptr !ptr
 oxy 2 sizeof(ptr) * current_keep +ptr !ptr
 
-// y
-height !64
-0 while dup 2 < do
-  // outer
-  dup 1 = if
+height !64 // save height in memory
+0 while dup 2 < do // stk: loop_counter
+  dup 1 = if // Second time through loop we look at CO2
     co2_keep current_keep !ptr
-    len(co2_keep) 1 sizeof(ptr) * current_keep +ptr !ptr
+    len(co2_keep) sizeof(ptr) current_keep +ptr !ptr
     co2 2 sizeof(ptr) * current_keep +ptr !ptr
   end
 
-  // outer
-  0 while dup width @64 < do // for each digit
-    // outer x
+  0 while dup width @64 < do // For each column, stk: loop x
     0 ones !64
-    0 while dup height @64 < do // for each line
-      // outer x y
-      dup current_keep @ptr @a[i] cast(bool) if // is it selected?
-        // outer x y
-        2dup width @64 * + data @a[i]
-        // outer x y digit
-        1 = if ones inc64 end
-        // outer x y
+    0 while dup height @64 < do // stk: loop x y
+      dup current_keep @ptr @a[i] cast(bool) if // This row is selected
+        2dup @data[x][y] // Read digit
+        1 = if ones inc64 end // Increment ones if digit is 1
       end
-      1 +
-      // outer x y
-    end drop
+      1 + // stk: loop x y
+    end drop // stk: loop x
 
-    // outer x
-    ones @64 1 sizeof(ptr) * current_keep +ptr @ptr @64 1 + 2 / >= if over else over 1 + 2 % end
-    // outer x search
-    over while dup height @64 width @64 * < do
-      // outer x search idx
-      dup width @64 / current_keep @ptr @a[i] cast(bool) if
-        // outer x search idx
-        over over data @a[i]
-        // outer x search idx search digit
-        = if
-  	// outer x search idx
-  	1 sizeof(ptr) * current_keep +ptr dup @ptr @64 1 - swap @ptr !64
-  	false cast(int) over width @64 / current_keep @ptr !a[i]
-        end
-        // outer x search idx
+    // if number of 1's is more than half the selected rows
+    //   then search for 0 first time through, 1 second time (opposite if not more than half)
+    ones @64 sizeof(ptr) current_keep +ptr @ptr @64 1 + 2 / >= if over else over 1 + 2 % end
+    // stk: loop x search
+    over while dup height @64 width @64 * < do // Loop down this column, stk: loop x search idx
+      dup width @64 / current_keep @ptr @a[i] cast(bool) if // This row is selected (idx/width = y)
+        2dup data @a[i] // stk: loop x search idx search digit
+        = if // This is the digit we were searching for, stk: loop x search idx
+    	  sizeof(ptr) current_keep +ptr @ptr dec64 // decrement len(keep)
+  	  false cast(int) over width @64 / current_keep @ptr !a[i] // don't keep this row for next time (idx/width = y)
+        end // stk: loop x search idx
       end
-      width @64 +
-      // outer x search idx
-    end drop drop
+      width @64 + // Increment y portion of idx, stk: loop x search idx
+    end drop drop // stk: loop x
 
-    // outer x
-    1 sizeof(ptr) * current_keep +ptr @ptr @64 1 = if
-      // outer x
-      0 while dup height @64 < do
-        // outer x y
-        dup current_keep @ptr @a[i] cast(bool) if
-  	// outer x y
-          dup width @64 * while 2dup swap 1 + width @64 * < do // each digit
-            // outer x y idx
-            dup data @a[i]
-            // outer x y idx digit
-            2 sizeof(ptr) * current_keep +ptr swap over @ptr @64 2 * + swap @ptr !64
-            1 +
-          end drop
+    sizeof(ptr) current_keep +ptr @ptr @64 1 = if // We only have one row selected
+      0 while dup height @64 < do // Loop through rows, stk: loop x y
+        dup current_keep @ptr @a[i] cast(bool) if // This row is selected
+          dup width @64 * while 2dup swap 1 + width @64 * < do // Loop through digits, stk: loop x y idx
+            dup data @a[i] // stk: loop x y idx digit
+            2 sizeof(ptr) * current_keep +ptr @ptr // stk: loop x y idx digit (oxy_p or co2_p)
+            swap over @64 2 * + swap !64 // Update the oxygen or CO2 variable (depends on which loop we are on)
+            1 + // Increment x portion of idx, stk: loop x y idx
+          end drop // stk: loop x y
         end
-        1 +
-        // outer x y
-      end drop
-      drop width @64
-      // outer end_of_x (basically break inner)
+        1 + // Increment row, stk: loop x y
+      end drop // stk: loop x
+      drop width @64 // outer end_of_x (basically break inner)
     end
 
-    1 +
-    // outer x
-  end drop
+    1 + // stk: loop x
+  end drop // stk: loop
+  1 + // stk: loop
+end drop // stk:
 
-  1 +
-  // outer
-end drop
-
+// Print part 2
 oxy @64 co2 @64 * print
-
