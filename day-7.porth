@@ -42,11 +42,21 @@ proc numbers_min_max -- int int in
   _min @64 _max @64
 end
 
-proc calculate_fuel int -- int in // stk: target -> fuel
+proc calculate_fuel_part1 int -- int in // stk: target -> fuel
   memory _fuel sizeof(int) end
   0 _fuel !64
   0 while dup len(numbers) @64 < do // stk: target idx
     2dup @numbers[i] - abs _fuel swap inc64-by // stk: target idx
+    1 +
+  end drop drop
+  _fuel @64
+end
+
+proc calculate_fuel_part2 int -- int in // stk: target -> fuel
+  memory _fuel sizeof(int) end
+  0 _fuel !64
+  0 while dup len(numbers) @64 < do // stk: target idx
+    2dup @numbers[i] - abs dup 1 + * 2 / _fuel swap inc64-by // stk: target idx
     1 +
   end drop drop
   _fuel @64
@@ -59,8 +69,29 @@ end
 numbers_min_max // stk: min max
 2dup - abs len(numbers) @64 * fuel !64 // Save worst case, stk: min max
 while 2dup <= do // Loop from min to max, stk: idx max
-  over calculate_fuel // stk: idx max fuel
+  over calculate_fuel_part1 // stk: idx max fuel
   dup fuel @64 < if fuel !64 else drop end // stk: idx max
   swap 1 + swap // stk: idx max
 end 2drop // stk:
 fuel @64 print
+
+// Part 2, I think the optimal alignment will be round(avg(numbers)
+0 // stk: sum
+0 while dup len(numbers) @64 < do // stk: sum idx
+  dup @numbers[i] // stk: sum idx num
+  rot + swap // stk: sum idx
+  1 +
+end drop // stk: sum
+// Sum for my input is 466571, len is 1000, avg is 466.571
+len(numbers) @64 divmod 2 * len(numbers) @64 > if 1 + end // stk: target
+calculate_fuel_part2
+// Gets too high on submission, use it as a high value for doing brute force search
+fuel !64
+numbers_min_max while 2dup <= do // Loop from min to max, stk: idx max
+  over calculate_fuel_part2 // stk: idx max fuel
+  dup fuel @64 < if fuel !64 else drop end // stk: idx max
+  swap 1 + swap // stk: idx max
+end 2drop // stk:
+fuel @64 print
+// best is at target 466 (which is not avg rounded)
+// avg for example is 4.9, which *should* be rounded to 5
