@@ -1,0 +1,97 @@
+include "helpers.porth"
+
+memory height sizeof(int) end
+memory width sizeof(int) end
+memory gamma sizeof(int) end
+memory epsilon sizeof(int) end
+memory data sizeof(int) 12 * 1000 * end // input is 12*1000
+memory current_keep sizeof(ptr) 3 * end // store keep, len, tgt
+memory oxy_keep sizeof(bool) 1000 * end // input has 1000 records
+memory co2_keep sizeof(bool) 1000 * end // input has 1000 records
+memory len(oxy_keep) sizeof(int) end
+memory len(co2_keep) sizeof(int) end
+memory oxy sizeof(int) end
+memory co2 sizeof(int) end
+
+proc @data[x][y] int int -- int in // x y -> ret
+  width @64 * + data @a[i]
+end
+
+proc !data[x][y] int int int in // val x y
+  width @64 * + data !a[i]
+end
+
+proc read_input in
+  0 0 // stk: x y
+  while eof? lnot do
+    next_char // stk: x y digit
+    dup '\n' = if drop // stk: x y
+      swap width !64 0 swap // save x to width, reset 0
+      1 + // increment y
+    else dup '0' = if* drop // stk: x y
+      2dup 0 rot rot !data[x][y] // save 0 to data[x][y]
+      swap 1 + swap // increment x
+    else dup '1' = if* drop // stk: x y
+      2dup 1 rot rot !data[x][y] // save 1 to data[x][y]
+      swap 1 + swap // increment x
+    else drop // UNKNOWN DIGIT, stk: x y
+    end
+    // stk: x y
+  end swap drop // stk: y (-> height)
+  height !64
+end
+
+proc reset_current_keep in
+  // Store height in length of keep variables (i.e. keep all rows)
+  height @64
+  dup len(oxy_keep) !64
+  len(co2_keep) !64
+  1000 0 while 2dup > do
+    true cast(int) over oxy_keep !a[i]
+    true cast(int) over co2_keep !a[i]
+    1 +
+  end drop drop
+
+  // First time through we look at oxygen
+  oxy_keep current_keep !ptr
+  len(oxy_keep) sizeof(ptr) current_keep +ptr !ptr
+  oxy 2 sizeof(ptr) * current_keep +ptr !ptr
+end
+
+proc count_ones int -- int in // stk: x -> ones
+  0 swap // stk: ones x
+  0 while dup height @64 < do // stk: ones x y
+    dup current_keep @ptr @a[i] cast(bool) if // This row is selected
+      2dup @data[x][y] // Read digit
+      1 = if rot 1 + rot rot end // Increment ones if digit is 1
+    end
+    1 + // stk: ones x y
+  end drop drop // stk: oned
+end
+
+proc update_selection int int in // stk: x search
+  over while dup height @64 width @64 * < do // Loop down this column, stk: x search idx
+    dup width @64 / current_keep @ptr @a[i] cast(bool) if // This row is selected (idx/width = y)
+      2dup data @a[i] // stk: x search idx search digit
+      = if // This is the digit we were searching for, stk: x search idx
+  	  sizeof(ptr) current_keep +ptr @ptr dec64 // decrement len(keep)
+	  false cast(int) over width @64 / current_keep @ptr !a[i] // don't keep this row for next time (idx/width = y)
+      end // stk: x search idx
+    end
+    width @64 + // Increment y portion of idx, stk: x search idx
+  end drop drop drop // stk:
+end
+
+proc save_current int in // stk: x
+  0 while dup height @64 < do // Loop through rows, stk: x y
+    dup current_keep @ptr @a[i] cast(bool) if // This row is selected
+      dup width @64 * while 2dup swap 1 + width @64 * < do // Loop through digits, stk: x y idx
+        dup data @a[i] // stk: x y idx digit
+        2 sizeof(ptr) * current_keep +ptr @ptr // stk: x y idx digit (oxy_p or co2_p)
+        swap over @64 2 * + swap !64 // Update the oxygen or CO2 variable (depends on which loop we are on)
+        1 + // Increment x portion of idx, stk: x y idx
+      end drop // stk: x y
+    end
+    1 + // Increment row, stk: x y
+  end drop drop // stk:
+end
