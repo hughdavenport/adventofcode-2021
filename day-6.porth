@@ -1,46 +1,56 @@
 include "helpers.porth"
 
-const MAX_NUMBER 1000000 end
-memory numbers sizeof(int) MAX_NUMBER * end
-memory len(numbers) sizeof(int) end
+memory backing sizeof(int) 9 * end
+memory counts sizeof(int) 9 * end
 
 proc add_number int -- in
-  len(numbers) @64 numbers !a[i]
-  len(numbers) inc64
+  counts a[i]++
 end
 
-proc dump-nums in
-  0 while dup len(numbers) @64 < do
+proc dump-counts in
+  0 while dup 9 < do
     dup 0 > if "," puts end
-    dup numbers @a[i] putu
+    dup counts @a[i] putu
     1 +
   end drop
   "\n" puts
 end
 
-proc simulate_day in
-  len(numbers) @64 0 while 2dup > do
-    // len idx
-    dup numbers @a[i]
-    // len idx num
-    dup 0 = if
-      8 add_number
-      drop 6 over numbers !a[i]
-    else
-      1 - over numbers !a[i]
-    end
-    // len idx
+proc get_count -- int in
+  0
+  0 while dup 9 < do
+    swap over counts @a[i] + swap
     1 +
-  end drop drop
+  end drop
+end
+
+proc simulate_day in
+  0 while dup 9 < do
+    0 over backing !a[i]
+    1 +
+  end drop
+  0 counts @a[i]
+  dup 8 backing !a[i]
+  6 backing !a[i]
+  1 while dup 9 < do
+    dup counts @a[i]
+    over 1 - backing @a[i]
+    + over 1 - backing !a[i]
+    1 +
+  end drop
+  9 sizeof(int) * backing counts memcpy drop // size src dest -> dest
 end
 
 while eof? lnot do
   parse_int_from_buffer add_number
 end
-// "Initial state: " puts dump-nums
 0 while dup 80 < do
   simulate_day
   1 +
-//  dup "After " puts putu " days: " puts dump-nums
+end
+get_count print
+while dup 256 < do
+  simulate_day
+  1 +
 end drop
-len(numbers) @64 print
+get_count print
