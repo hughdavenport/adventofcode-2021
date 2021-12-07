@@ -134,3 +134,7 @@ proc min_max int int -- int int in
     // b max  --  (b!=max)
   end
 end
+
+proc abs int -- int in
+  dup 0 < if -1 * end
+end

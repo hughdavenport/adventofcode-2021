@@ -1,0 +1,66 @@
+include "helpers.porth"
+
+memory numbers sizeof(int) 1000 * end // input has 1000 numbers
+memory len(numbers) sizeof(int) end
+memory fuel sizeof(int) end
+
+proc !numbers[i] int int in
+  numbers !a[i]
+end
+
+proc @numbers[i] int -- int in
+  numbers @a[i]
+end
+
+proc add_number int in
+  len(numbers) @64 !numbers[i]
+  len(numbers) inc64
+end
+
+proc dump_numbers in
+  0 while dup len(numbers) @64 < do
+    dup 0 > if "," puts end
+    dup @numbers[i] putu
+    1 +
+  end drop
+  "\n" puts
+end
+
+proc numbers_min_max -- int int in
+  memory _min sizeof(int) end
+  memory _max sizeof(int) end
+  0 @numbers[i] 1 @numbers[i] min_max _max !64 _min !64 // stk:
+  2 while dup len(numbers) @64 < do  // stk: idx
+    dup @numbers[i] // stk: idx num
+    dup _min @64 < if // num is new min, stk: idx num
+      dup _min !64
+    else dup _max @64 > if* // num is new max, stk: idx num
+      dup _max !64
+    end drop // stk: idx
+    1 +
+  end drop
+  _min @64 _max @64
+end
+
+proc calculate_fuel int -- int in // stk: target -> fuel
+  memory _fuel sizeof(int) end
+  0 _fuel !64
+  0 while dup len(numbers) @64 < do // stk: target idx
+    2dup @numbers[i] - abs _fuel swap inc64-by // stk: target idx
+    1 +
+  end drop drop
+  _fuel @64
+end
+
+while skip_nondigit_from_buffer eof? lnot do
+  parse_int_from_buffer add_number
+end
+
+numbers_min_max // stk: min max
+2dup - abs len(numbers) @64 * fuel !64 // Save worst case, stk: min max
+while 2dup <= do // Loop from min to max, stk: idx max
+  over calculate_fuel // stk: idx max fuel
+  dup fuel @64 < if fuel !64 else drop end // stk: idx max
+  swap 1 + swap // stk: idx max
+end 2drop // stk:
+fuel @64 print
