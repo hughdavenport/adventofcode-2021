@@ -1,10 +1,10 @@
 include "helpers.porth"
 
 const DEBUG false end
-const PART_TWO true end
 const CELL_SIZE sizeof(int) end
 const N 1000 end // input looks to only go up to 1000x1000
 memory board CELL_SIZE N N * * end
+memory diagonals CELL_SIZE N N * * end
 proc board[i] int -- ptr in board a[i] end
 proc !board[i] int int in board !a[i] end
 proc @board[i] int -- int in board @a[i] end
@@ -53,7 +53,6 @@ proc set_line in
     end
     // idx1 idx2
   else // part 2, diaganol
-    PART_TWO if
     // idx1 idx2
     // work out which way the line is going
     min_max // always go up in y (chunks of N)
@@ -61,17 +60,16 @@ proc set_line in
     // idx1 idx2 x1 x2
     > if // we should increment x
       while 2dup <= do
-        dup @board[i] 1 + over !board[i]
+        dup diagonals @a[i] 1 + over diagonals !a[i]
         N - 1 +
       end
     else // we should decrement x
       while 2dup <= do
-        dup @board[i] 1 + over !board[i]
+        dup diagonals @a[i] 1 + over diagonals !a[i]
         N - 1 -
       end
     end
     // idx1 idx2
-    end // PART_TWO if
   end
   drop drop
 end
@@ -99,6 +97,14 @@ DEBUG if dump-board end
 N N * while dup 0 > do
   // sum cell
   dup @board[i] 2 >= if swap 1 + swap end
+  1 -
+end drop
+print
+0
+// sum
+N N * while dup 0 > do
+  // sum cell
+  dup @board[i] over diagonals @a[i] + 2 >= if swap 1 + swap end
   1 -
 end drop
 print
