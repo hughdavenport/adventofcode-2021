@@ -18,15 +18,23 @@ proc read_numbers in
   // len
   0 while 2dup > do
     // len idx
-    dup buffer +ptr @8 10 = if // newline, store rest in buffer
+    dup buffer +ptr @8 '\n' = if // newline, store rest in buffer
       // len idx
       2dup - over buffer +ptr stdin_buffer_idx @64 stdin_buffer +ptr memcpy drop
       2dup - len(stdin_buffer) @64 + len(stdin_buffer) !64
       drop drop
       1 1 // break
     else
-      over swap buffer swap parse_int
-      // len idx_of_next num
+      // len idx
+      while 2dup > over buffer +ptr @8 isdigit lnot land do 1 + end // skip nondigits
+      2dup - over buffer +ptr try-parse-int drop // ignore the true/false, it will be false as reached a comma
+      // len idx num
+      rot rot
+      // num len idx
+      while 2dup > over buffer +ptr @8 isdigit land do 1 + end // skip digits
+      // num len idx_of_next
+      rot
+      // len idx num
       len(numbers) @64 sizeof(int) * numbers +ptr !64
       len(numbers) @64 1 + len(numbers) !64
     end
@@ -46,7 +54,8 @@ end
 
 proc read_board -- bool in
   refill_buffer_if_empty
-  len(stdin_buffer) @64 0 != if
+  skip_whitespace_from_buffer
+  eof? lnot if
     0 while dup 25 < do
       parse_int_from_buffer
       p @ptr !64

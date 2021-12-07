@@ -6,6 +6,7 @@ memory part2_y sizeof(int) end
 memory aim sizeof(int) end
 
 while eof? lnot do
+  skip_whitespace_from_buffer
   stdin_buffer_idx @64 stdin_buffer +ptr @8
   // c
   parse_int_from_buffer

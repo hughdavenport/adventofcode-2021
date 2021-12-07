@@ -5,44 +5,45 @@ memory stdin_buffer STDIN_BUFFER_MAX end
 memory len(stdin_buffer) sizeof(int) end
 memory stdin_buffer_idx sizeof(int) end
 
-proc parse_int
-    int ptr int // len buf idx
-    --
-    int int // idx ret
-in
-  memory ret sizeof(int) end
-  memory _tmp sizeof(int) end
-  memory _fin sizeof(bool) end
-  0 ret !64
-  false _fin !bool
-
-  // len buf idx
-  _tmp !64 swap _tmp @64
-  // buf len idx
-  while 2dup > _fin @bool lnot land do
-    // buf len idx
-    swap _tmp !64 2dup
-    // buf idx buf idx
-    swap +ptr @8
-    // buf idx dig
-    dup isdigit lnot if drop // not a digit
-      // buf idx
-      true _fin !bool
-      // buf idx
-    else // is a digit, add digit to stored int
-      // buf idx dig
-      '0' - ret @64 10 * + ret !64
-      // buf idx
-    end
-
-    _tmp @64 swap
-    1 +
-    // buf len idx
-  end
-  // buf len idx
-  swap drop swap drop ret @64
-  // idx ret
-end
+// use try-parse-int from std.porth instead
+// proc parse_int
+//     int ptr int // len buf idx
+//     --
+//     int int // idx ret
+// in
+//   memory ret sizeof(int) end
+//   memory _tmp sizeof(int) end
+//   memory _fin sizeof(bool) end
+//   0 ret !64
+//   false _fin !bool
+// 
+//   // len buf idx
+//   _tmp !64 swap _tmp @64
+//   // buf len idx
+//   while 2dup > _fin @bool lnot land do
+//     // buf len idx
+//     swap _tmp !64 2dup
+//     // buf idx buf idx
+//     swap +ptr @8
+//     // buf idx dig
+//     dup isdigit lnot if drop // not a digit
+//       // buf idx
+//       true _fin !bool
+//       // buf idx
+//     else // is a digit, add digit to stored int
+//       // buf idx dig
+//       '0' - ret @64 10 * + ret !64
+//       // buf idx
+//     end
+// 
+//     _tmp @64 swap
+//     1 +
+//     // buf len idx
+//   end
+//   // buf len idx
+//   swap drop swap drop ret @64
+//   // idx ret
+// end
 
 proc refill_buffer_if_empty in
   len(stdin_buffer) @64 stdin_buffer_idx @64 -
@@ -63,24 +64,10 @@ proc refill_buffer_if_empty in
   end drop
 end
 
-proc skip_nondigit_from_buffer -- in
-  stdin_buffer_idx @64 while dup len(stdin_buffer) @64 < do
-    dup stdin_buffer +ptr @8
-    isdigit if
-      stdin_buffer_idx !64
-      len(stdin_buffer) @64 // break
-    end
-    1 +
-  end drop
-end
-
-proc parse_int_from_buffer -- int in
-  skip_nondigit_from_buffer
+proc next_char -- int in
   refill_buffer_if_empty
-  skip_nondigit_from_buffer
-  len(stdin_buffer) @64 stdin_buffer stdin_buffer_idx @64
-  parse_int
-  swap stdin_buffer_idx !64
+  stdin_buffer_idx @64 stdin_buffer +ptr @8
+  stdin_buffer_idx inc64
 end
 
 proc eof? -- bool in
@@ -89,10 +76,29 @@ proc eof? -- bool in
   0 =
 end
 
-proc next_char -- int in
+proc skip_nondigit_from_buffer -- in
+  while eof? lnot next_char isdigit lnot land do
+  end stdin_buffer_idx dec64
+end
+
+proc skip_whitespace_from_buffer -- in
+  while eof? lnot next_char
+      dup ' ' =
+      over '\t' = lor
+      over '\n' = lor
+    swap drop land do
+  end stdin_buffer_idx dec64
+end
+
+proc parse_int_from_buffer -- int in
+  skip_nondigit_from_buffer
   refill_buffer_if_empty
-  stdin_buffer_idx @64 stdin_buffer +ptr @8
-  stdin_buffer_idx inc64
+  skip_nondigit_from_buffer
+  len(stdin_buffer) @64 stdin_buffer_idx @64 - stdin_buffer_idx @64 stdin_buffer +ptr
+  try-parse-int
+  drop // ignore true/false, it will still parse the start
+  while eof? lnot next_char isdigit land do
+  end stdin_buffer_idx dec64
 end
 
 proc a[i] int ptr -- ptr in

@@ -41,7 +41,7 @@ proc simulate_day in
   9 sizeof(int) * backing counts memcpy drop // size src dest -> dest
 end
 
-while eof? lnot do
+while skip_whitespace_from_buffer eof? lnot do
   parse_int_from_buffer add_number
 end
 0 while dup 80 < do
