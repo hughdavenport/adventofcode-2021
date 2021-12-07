@@ -1,45 +1,29 @@
 include "helpers.porth"
 
-const BUFFER_CAP 1024 end
 const BOARD_SIZE 5 5 * end
 const BOARD_CELL_SIZE sizeof(int) sizeof(bool) + end
-memory buffer BUFFER_CAP end
 memory numbers sizeof(int) 100 * end // input has 100 in it
 memory len(numbers) sizeof(int) end
 memory boards BOARD_SIZE BOARD_CELL_SIZE * 100 * end // input has 100 boards in it
 memory len(boards) sizeof(int) end
 memory p sizeof(ptr) end
-memory score sizeof(int) end
 memory bingos sizeof(bool) 100 * end // input has 100 boards in it
+memory result sizeof(int) end // Save scores to this, the last one will be the one there at the end
 boards p !ptr
 
+proc @numbers[i] int -- int in
+  numbers @a[i]
+end
+
+proc add_number int in
+  len(numbers) @64 numbers !a[i]
+  len(numbers) inc64
+end
+
 proc read_numbers in
-  BUFFER_CAP buffer stdin read
-  // len
-  0 while 2dup > do
-    // len idx
-    dup buffer +ptr @8 '\n' = if // newline, store rest in buffer
-      // len idx
-      2dup - over buffer +ptr stdin_buffer_idx @64 stdin_buffer +ptr memcpy drop
-      2dup - len(stdin_buffer) @64 + len(stdin_buffer) !64
-      drop drop
-      1 1 // break
-    else
-      // len idx
-      while 2dup > over buffer +ptr @8 isdigit lnot land do 1 + end // skip nondigits
-      2dup - over buffer +ptr try-parse-int drop // ignore the true/false, it will be false as reached a comma
-      // len idx num
-      rot rot
-      // num len idx
-      while 2dup > over buffer +ptr @8 isdigit land do 1 + end // skip digits
-      // num len idx_of_next
-      rot
-      // len idx num
-      len(numbers) @64 sizeof(int) * numbers +ptr !64
-      len(numbers) @64 1 + len(numbers) !64
-    end
-    // len idx
-  end drop drop
+  while newline? lnot do
+    parse_int_from_buffer add_number
+  end
 end
 
 proc dump_numbers in
@@ -56,13 +40,13 @@ proc read_board -- bool in
   refill_buffer_if_empty
   skip_whitespace_from_buffer
   eof? lnot if
-    0 while dup 25 < do
+    0 while dup BOARD_SIZE < do
       parse_int_from_buffer
       p @ptr !64
       BOARD_CELL_SIZE p @ptr +ptr p !ptr
       1 +
     end drop
-    len(boards) @64 1 + len(boards) !64
+    len(boards) inc64
     true
   else
     false
@@ -112,81 +96,58 @@ proc has_col ptr -- bool in
   swap drop
 end
 
-proc is_bingo int -- bool in
-  // board_idx
-  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
-  // cell_p
-  false swap
-  // ret cell_p
-  0 while dup 5 < do // rows and cols
-    // ret cell_p idx
-    2dup BOARD_CELL_SIZE 5 * * swap +ptr has_row if
-      // ret cell_p idx
-      drop drop drop
-      true 0 cast(ptr) 5 // break true
-    else 2dup BOARD_CELL_SIZE * swap +ptr has_col if*
-      // ret cell_p idx
-      drop drop drop
-      true 0 cast(ptr) 5 // break true
-    end
-    // ret cell_p idx
+proc is_bingo int -- bool in // stk: board_idx -> bingo
+  false swap // stk: ret board_idx
+  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr // stk: ret cell_p
+  0 while dup 5 < do // Loop over both rows and cols, stk: ret cell_p idx
+    2dup BOARD_CELL_SIZE 5 * * swap +ptr has_row if // This row is a bingo
+      drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
+    else 2dup BOARD_CELL_SIZE * swap +ptr has_col if* // This col is a bingo
+      drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
+    end // stk: ret cell_p idx
     1 +
-  end drop drop
+  end drop drop // stk:
 end
 
-proc get_score int in // board_id
-  0 score !64
-  // board_idx
-  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr
-  // base_p
-  0 while dup 25 < do
-    // base_p idx
-    2dup BOARD_CELL_SIZE * swap +ptr
-    // base_p idx cell_p
-    sizeof(int) over +ptr @bool lnot if
-      @64 score @64 + score !64
-    else drop end
-    // base_p idx
-    1 +
-  end drop drop
+proc get_score int -- int in // stk: board_id -> score
+  0 swap // stk: score board_id
+  BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr // stk: score board_base_p
+  dup while over BOARD_SIZE BOARD_CELL_SIZE * swap +ptr over swap ptr< do // For each cell in this board, stk: score base_p cell_p
+    sizeof(int) over +ptr @bool lnot if // This cell hasn't been called
+      rot over @64 + rot rot // Increment score
+    end
+    BOARD_CELL_SIZE swap +ptr // Increment to next cell, stk: base_p cell_p
+  end drop drop // stk:
 end
 
 read_numbers
-0 while dup 100 < do
-  read_board drop
-  1 +
-end drop
+while read_board do end
 
-0 while dup len(numbers) @64 < do // for each number
-  // num_idx
-  dup sizeof(int) * numbers +ptr @64
-  // num_idx num
-  boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do
-    // num_idx num cell_p
-    swap over @64
-    // num_idx cell_p num cell
-    over = if
-      // num_idx cell_p num
-      over sizeof(int) swap +ptr true swap !bool
-    end
-    // num_idx cell_p num
-    swap
-    BOARD_CELL_SIZE swap +ptr
-  end drop
-  // num_idx num
-  0 while dup len(boards) @64 < do
-    // num_idx num board_idx
-    dup is_bingo over sizeof(bool) * bingos +ptr @bool lnot land if
-      dup get_score
-      over score @64 * print // Part 1 is first, part 2 is last
-      // num_idx num board_idx
+0 while dup len(numbers) @64 < do // for each number, stk: num_idx
+  dup @numbers[i] // stk: num_idx num
+
+  boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do // For each cell on each board, stk: num_idx num cell_p
+    swap over @64 // stk: num_idx cell_p num cell
+    over = if // We found a number that was called
+      over sizeof(int) swap +ptr true swap !bool // Mark this cell as called
+    end // stk: num_idx cell_p num
+    swap BOARD_CELL_SIZE swap +ptr // Go to next cell (may be on diff board), stk: num_idx num cell_p
+  end drop // stk: num_idx num
+
+  0 while dup len(boards) @64 < do // For each board, stk: num_idx num board_idx
+    dup is_bingo over sizeof(bool) * bingos +ptr @bool lnot land if // We found a bingo
+      dup get_score // stk: num_idx num board_idx score
+      rot dup rot * // stk: num_idx board_idx num result
+      result @64 0 = if dup print end result !64 // Print first time (part 1), save each time for later getting last (part 2)
+      swap // stk: num_idx num board_idx
       true over sizeof(bool) * bingos +ptr !bool
 // part 2 wants the last board to win, so keep going
 //      drop drop drop
 //      len(numbers) @64 0 len(boards) @64 // break
     end
-    1 +
-  end drop
-  drop
-  1 +
-end drop
+    1 + // stk: num_idx num board_idx
+  end drop drop // stk: num_idx
+  1 + // stk: num_idx
+end drop // stk:
+// Print out part 2 (the last result)
+result @64 print

@@ -76,6 +76,11 @@ proc eof? -- bool in
   0 =
 end
 
+proc newline? -- bool in
+  next_char '\n' =
+  stdin_buffer_idx dec64
+end
+
 proc skip_nondigit_from_buffer -- in
   while eof? lnot next_char isdigit lnot land do
   end stdin_buffer_idx dec64
