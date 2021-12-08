@@ -45,6 +45,13 @@ memory stdin_buffer_idx sizeof(int) end
 //   // idx ret
 // end
 
+proc dump_buffer in
+  "Buffer: " puts
+  len(stdin_buffer) @64 stdin_buffer_idx @64 -
+  stdin_buffer stdin_buffer_idx @64 ptr+
+  puts
+end
+
 proc refill_buffer_if_empty in
   len(stdin_buffer) @64 stdin_buffer_idx @64 -
   dup 0 = if
@@ -93,6 +100,12 @@ proc skip_whitespace_from_buffer -- in
       over '\n' = lor
     swap drop land do
   end stdin_buffer_idx dec64
+end
+
+proc skip_until_char_from_buffer int -- in
+  while eof? lnot over next_char != land do end
+  stdin_buffer_idx dec64
+  drop
 end
 
 proc parse_int_from_buffer -- int in

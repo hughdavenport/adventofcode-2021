@@ -1,0 +1,23 @@
+include "helpers.porth"
+
+0 // stk: sum
+while
+    eof? lnot
+    '|' skip_until_char_from_buffer
+    next_char drop
+    do
+  0 while dup 4 < do // stk: sum idx
+    skip_whitespace_from_buffer
+    0 while next_char isalpha do 1 + end // stk: sum idx len(word)
+    // Test digits 1 4 7 8, which have 2 4 3 7 lights respectively
+     dup 2 =
+    over 4 = lor
+    over 3 = lor
+    over 7 = lor if
+      rot 1 + rot rot
+    end
+    drop // stk: sum idx
+    1 +
+  end drop // stk: sum
+end
+print
