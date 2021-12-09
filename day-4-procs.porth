@@ -20,12 +20,6 @@ proc add_number int in
   len(numbers) inc64
 end
 
-proc read_numbers in
-  while newline? lnot do
-    parse_int_from_buffer add_number
-  end
-end
-
 proc dump_numbers in
   "numbers: " puts
   0 while dup len(numbers) @64 < do
@@ -36,20 +30,20 @@ proc dump_numbers in
   "\n" puts
 end
 
-proc read_board -- bool in
-  refill_buffer_if_empty
-  skip_whitespace_from_buffer
-  eof? lnot if
-    0 while dup BOARD_SIZE < do
-      parse_int_from_buffer
-      p @ptr !64
-      BOARD_CELL_SIZE p @ptr +ptr p !ptr
-      1 +
-    end drop
-    len(boards) inc64
-    true
-  else
-    false
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+read_stdin_to_str @Str input !Str
+
+proc read_numbers in
+  line input str-chop-line
+  while ',' word line str-chop-by-delim len(word) 0 > do
+    word @Str try-parse-int drop add_number
   end
 end
 
@@ -59,7 +53,7 @@ proc dump_board int in // board_id
   // base_p
   0 while dup BOARD_SIZE < do
     // base_p idx
-    2dup BOARD_CELL_SIZE * swap +ptr
+    over over BOARD_CELL_SIZE * swap +ptr
     // base_p idx cell_p
     dup @64
     swap sizeof(int) swap +ptr @bool if
@@ -74,6 +68,26 @@ proc dump_board int in // board_id
       " " puts
     end
   end drop drop
+end
+
+proc read_board -- bool in
+  len(input) 0 > if
+    line input str-chop-line // Skip first line
+    0 while dup BOARD_SIZE < do
+      dup 5 % 0 = if
+        line input str-chop-line
+      end
+      while word line str-chop-word len(word) 0 = do end // Some vals are padded with whitespace
+      word @Str try-parse-int drop
+      p @ptr !64
+      BOARD_CELL_SIZE p @ptr +ptr p !ptr
+      1 +
+    end drop
+    len(boards) inc64
+    true
+  else
+    false
+  end
 end
 
 proc has_row ptr -- bool in
@@ -100,9 +114,9 @@ proc is_bingo int -- bool in // stk: board_idx -> bingo
   false swap // stk: ret board_idx
   BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr // stk: ret cell_p
   0 while dup 5 < do // Loop over both rows and cols, stk: ret cell_p idx
-    2dup BOARD_CELL_SIZE 5 * * swap +ptr has_row if // This row is a bingo
+    over over BOARD_CELL_SIZE 5 * * swap +ptr has_row if // This row is a bingo
       drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
-    else 2dup BOARD_CELL_SIZE * swap +ptr has_col if* // This col is a bingo
+    else over over BOARD_CELL_SIZE * swap +ptr has_col if* // This col is a bingo
       drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
     end // stk: ret cell_p idx
     1 +

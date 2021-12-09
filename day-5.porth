@@ -9,18 +9,33 @@ proc board[i] int -- ptr in board a[i] end
 proc !board[i] int int in board !a[i] end
 proc @board[i] int -- int in board @a[i] end
 
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+memory digit sizeof(Str) end
+proc @digit -- int ptr in digit @Str end
+proc len(digit) -- int in digit @Str.count end
+read_stdin_to_str @Str input !Str
+
 proc set_line in
-  parse_int_from_buffer
-  parse_int_from_buffer
+  word line str-chop-word
+  ',' digit word str-chop-by-delim @digit try-parse-int drop
+  @word try-parse-int drop
   2dup N * +
   // x1 y1 idx1
   rot rot swap
   // idx1 y1 x1
-  parse_int_from_buffer
+  word line str-chop-word // Skip the "->" token
+  word line str-chop-word
+  ',' digit word str-chop-by-delim @digit try-parse-int drop
   // idx1 y1 x1 x2
   dup rot = swap rot
   // idx1 same_col? x2 y1
-  parse_int_from_buffer
+  @word try-parse-int drop
   // idx1 col? x2 y1 y2
   dup rot = swap rot
   // idx1 col? same_row? y2 x2
@@ -88,7 +103,7 @@ proc dump-board in
   end drop
 end
 
-while eof? lnot do
+while line input str-chop-line len(line) 0 > do
   set_line
 end
 DEBUG if dump-board end

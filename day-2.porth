@@ -5,22 +5,37 @@ memory part1_y sizeof(int) end
 memory part2_y sizeof(int) end
 memory aim sizeof(int) end
 
-while skip_whitespace_from_buffer eof? lnot do
-  next_char // stk: c
-  parse_int_from_buffer // stk: c num
-  over 'f' = if // forward
-    x over inc64-by // add num to x
-    aim @64 * part2_y swap inc64-by // add num*aim to y
-  else over 'd' = if* // down
-    part1_y over inc64-by // add num to y (part 1 only)
-    aim swap inc64-by // add num to aim
-  else over 'u' = if* // up
-    part1_y over -1 * inc64-by // subtract num from y
-    aim swap -1 * inc64-by // subtract num from aim
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+read_stdin_to_str @Str input !Str
+
+while line input str-chop-line len(line) 0 > do
+  word line str-chop-word
+  len(word) // stk: len(word)
+  word line str-chop-word
+  @word try-parse-int if // stk: len(word) num
+    over 7 = if // forward
+      x over inc64-by // add num to x
+      aim @64 * part2_y swap inc64-by // add num*aim to y
+    else over 4 = if* // down
+      part1_y over inc64-by // add num to y (part 1 only)
+      aim swap inc64-by // add num to aim
+    else over 2 = if* // up
+      part1_y over -1 * inc64-by // subtract num from y
+      aim swap -1 * inc64-by // subtract num from aim
+    else
+      drop // UNKNOWN CODE
+    end
   else
-    drop // UNKNOWN CODE
+    here puts " couldn't parse int: " puts @word puts
+    drop
   end
-  // stk: c
+  // stk: len(word)
   drop
 end
 

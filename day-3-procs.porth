@@ -21,23 +21,36 @@ proc !data[x][y] int int int in // val x y
   width @64 * + data !a[i]
 end
 
+proc dump-data in
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup swap @data[x][y] putu
+      1 +
+    end drop
+    "\n" puts
+    1 +
+  end drop
+end
+
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc *line -- int in line @Str.data @8 end
+proc len(line) -- int in line @Str.count end
 proc read_input in
-  0 0 // stk: x y
-  while eof? lnot do
-    next_char // stk: x y digit
-    dup '\n' = if drop // stk: x y
-      swap width !64 0 swap // save x to width, reset 0
-      1 + // increment y
-    else dup '0' = if* drop // stk: x y
-      2dup 0 rot rot !data[x][y] // save 0 to data[x][y]
-      swap 1 + swap // increment x
-    else dup '1' = if* drop // stk: x y
-      2dup 1 rot rot !data[x][y] // save 1 to data[x][y]
-      swap 1 + swap // increment x
-    else drop // UNKNOWN DIGIT, stk: x y
-    end
-    // stk: x y
-  end swap drop // stk: y (-> height)
+  read_stdin_to_str @Str input !Str
+
+  0 // stk: y
+  while line input str-chop-line len(line) 0 > do
+    len(line) width !64
+    0 while dup width @64 < do // stk: y x
+      2dup swap *line '0' - // stk: y x x y digit
+      rot rot !data[x][y]
+      line str-chop-one-left
+      1 +
+    end drop
+    1 +
+  end
   height !64
 end
 

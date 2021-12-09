@@ -5,27 +5,35 @@ memory counter sizeof(int) end
 memory window_sum sizeof(int) end
 memory window_counter sizeof(int) end
 
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+read_stdin_to_str @Str input !Str
+
 0 // stk: last
-while eof? lnot do // stk: last
-  parse_int_from_buffer swap // stk: num last
-  dup 0 != if // There is a previous measurement
+while line input str-chop-line len(line) 0 > do
+  @line try-parse-int if // stk: last num
+    swap // stk: num last
+    dup 0 != if // There is a previous measurement
+      2dup > if counter inc64 end // PART 1
 
-    2dup > if counter inc64 end // PART 1
-
-    // BEGIN PART 2
-    2dup + last2 @64 // stk: num last (sum-last2) last2
-    dup 0 = if 2drop // There have not been 3 measurements yet to fill window
-    else
-      + window_sum @64 // stk: num last sum last_sum
-      dup 0 = if drop // There has only been 1 window so far
-      else // There is a previous window sum
-        over < if window_counter inc64 end
+      2dup + last2 @64 // stk: num last (sum-last2) last2
+      dup 0 = if 2drop // There have not been 3 measurements yet to fill window
+      else
+        + window_sum @64 // stk: num last sum last_sum
+        dup 0 = if drop // There has only been 1 window so far
+        else // There is a previous window sum
+          over < if window_counter inc64 end
+        end
+        // stk: num last sum
+        window_sum !64
       end
-      // stk: num last sum
-      window_sum !64
+      // END PART 2
+      // stk: num last
     end
-    // END PART 2
-    // stk: num last
+  else
+    here puts " couldn't parse int: " puts @line puts
   end
   // stk: num last (-> last2 last)
   last2 !64 // stk: last

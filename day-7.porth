@@ -62,8 +62,14 @@ proc calculate_fuel_part2 int -- int in // stk: target -> fuel
   _fuel @64
 end
 
-while skip_nondigit_from_buffer eof? lnot do
-  parse_int_from_buffer add_number
+memory input sizeof(Str) end
+memory digit sizeof(Str) end
+proc @digit -- int ptr in digit @Str end
+proc len(digit) -- int in digit @Str.count end
+read_stdin_to_str @Str input !Str
+
+while ',' digit input str-chop-by-delim len(digit) 0 > do
+  @digit try-parse-int drop add_number
 end
 
 numbers_min_max // stk: min max

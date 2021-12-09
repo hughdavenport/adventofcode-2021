@@ -1,22 +1,29 @@
 include "helpers.porth"
 
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory split sizeof(Str) end
+proc @split -- int ptr in split @Str end
+proc len(split) -- int in split @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+read_stdin_to_str @Str input !Str
+
 0 // stk: sum
-while
-    eof? lnot
-    '|' skip_until_char_from_buffer
-    next_char drop
-    do
+while line input str-chop-line len(line) 0 > do
+  '|' split line str-chop-by-delim // line has right side, split has left side
+  line str-trim-left
   0 while dup 4 < do // stk: sum idx
-    skip_whitespace_from_buffer
-    0 while next_char isalpha do 1 + end // stk: sum idx len(word)
-    // Test digits 1 4 7 8, which have 2 4 3 7 lights respectively
-     dup 2 =
-    over 4 = lor
-    over 3 = lor
-    over 7 = lor if
-      rot 1 + rot rot
+    word line str-chop-word
+    len(word) 2 =
+    len(word) 4 = lor
+    len(word) 3 = lor
+    len(word) 7 = lor if
+      swap 1 + swap
     end
-    drop // stk: sum idx
     1 +
   end drop // stk: sum
 end

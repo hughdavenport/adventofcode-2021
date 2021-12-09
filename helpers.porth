@@ -1,124 +1,38 @@
 include "std.porth"
 
-const STDIN_BUFFER_MAX 10240 end
-memory stdin_buffer STDIN_BUFFER_MAX end
-memory len(stdin_buffer) sizeof(int) end
-memory stdin_buffer_idx sizeof(int) end
+// STACK
+proc 2dup int int -- int int int int in over over end
+proc 2drop int int -- in drop drop end
 
-// use try-parse-int from std.porth instead
-// proc parse_int
-//     int ptr int // len buf idx
-//     --
-//     int int // idx ret
-// in
-//   memory ret sizeof(int) end
-//   memory _tmp sizeof(int) end
-//   memory _fin sizeof(bool) end
-//   0 ret !64
-//   false _fin !bool
-// 
-//   // len buf idx
-//   _tmp !64 swap _tmp @64
-//   // buf len idx
-//   while 2dup > _fin @bool lnot land do
-//     // buf len idx
-//     swap _tmp !64 2dup
-//     // buf idx buf idx
-//     swap +ptr @8
-//     // buf idx dig
-//     dup isdigit lnot if drop // not a digit
-//       // buf idx
-//       true _fin !bool
-//       // buf idx
-//     else // is a digit, add digit to stored int
-//       // buf idx dig
-//       '0' - ret @64 10 * + ret !64
-//       // buf idx
-//     end
-// 
-//     _tmp @64 swap
-//     1 +
-//     // buf len idx
-//   end
-//   // buf len idx
-//   swap drop swap drop ret @64
-//   // idx ret
-// end
-
-proc dump_buffer in
-  "Buffer: " puts
-  len(stdin_buffer) @64 stdin_buffer_idx @64 -
-  stdin_buffer stdin_buffer_idx @64 ptr+
-  puts
-end
-
-proc refill_buffer_if_empty in
-  len(stdin_buffer) @64 stdin_buffer_idx @64 -
-  dup 0 = if
-    0 stdin_buffer_idx !64 0 len(stdin_buffer) !64
-  end
-  dup 100 < if // only refill if not much left
-    // len_of_existing
-    dup stdin_buffer_idx @64 stdin_buffer +ptr stdin_buffer memcpy drop // size, src, dest -> dest
-    0 stdin_buffer_idx !64
-    dup len(stdin_buffer) !64
-    // len_of_existing
-    dup STDIN_BUFFER_MAX swap -
-    // len_of_existing len_to_read
-    over stdin_buffer +ptr
-    // len_of_existing len_to_read buffer_to_read
-    stdin read len(stdin_buffer) @64 + len(stdin_buffer) !64
+// STRINGS
+memory stdin_cstr 100000 end
+proc read_stdin_to_str -- ptr in
+  memory ret sizeof(Str) end
+  memory buffer 1024 end
+  stdin_cstr ret !Str.data
+  0 while // stk: len
+    drop 1024 buffer stdin read
+    dup 0 >
+  do
+    0 while 2dup > do // stk: len idx
+      dup buffer +ptr @8
+      ret @Str.count ret @Str.data +ptr !8
+      ret Str.count inc64
+      1 +
+    end drop
   end drop
+  ret
 end
 
-proc next_char -- int in
-  refill_buffer_if_empty
-  stdin_buffer_idx @64 stdin_buffer +ptr @8
-  stdin_buffer_idx inc64
+proc str-chop-line ptr ptr in // stk: dst src
+  '\n' rot rot str-chop-by-delim
 end
 
-proc eof? -- bool in
-  refill_buffer_if_empty
-  len(stdin_buffer) @64 stdin_buffer_idx @64 -
-  0 =
+proc str-chop-word ptr ptr in // stk: dst src
+  ' ' rot rot str-chop-by-delim
 end
 
-proc newline? -- bool in
-  next_char '\n' =
-  stdin_buffer_idx dec64
-end
-
-proc skip_nondigit_from_buffer -- in
-  while eof? lnot next_char isdigit lnot land do
-  end stdin_buffer_idx dec64
-end
-
-proc skip_whitespace_from_buffer -- in
-  while eof? lnot next_char
-      dup ' ' =
-      over '\t' = lor
-      over '\n' = lor
-    swap drop land do
-  end stdin_buffer_idx dec64
-end
-
-proc skip_until_char_from_buffer int -- in
-  while eof? lnot over next_char != land do end
-  stdin_buffer_idx dec64
-  drop
-end
-
-proc parse_int_from_buffer -- int in
-  skip_nondigit_from_buffer
-  refill_buffer_if_empty
-  skip_nondigit_from_buffer
-  len(stdin_buffer) @64 stdin_buffer_idx @64 - stdin_buffer_idx @64 stdin_buffer +ptr
-  try-parse-int
-  drop // ignore true/false, it will still parse the start
-  while eof? lnot next_char isdigit land do
-  end stdin_buffer_idx dec64
-end
-
+// ARRAYS
 proc a[i] int ptr -- ptr in
   swap sizeof(int) * swap +ptr
 end
@@ -135,6 +49,7 @@ proc a[i]++ int ptr in
   a[i] dup @64 1 + swap !64
 end
 
+// MATH
 proc min_max int int -- int int in
   2dup
   max swap
