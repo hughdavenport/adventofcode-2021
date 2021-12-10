@@ -32,6 +32,31 @@ proc str-chop-word ptr ptr in // stk: dst src
   ' ' rot rot str-chop-by-delim
 end
 
+proc str-contains int ptr -- bool in
+  memory s sizeof(Str) end
+  @Str s !Str
+  false // stk: search ret
+  while dup lnot s @Str.count 0 > land do
+    over s @Str.data @8 = if drop true end
+    s str-chop-one-left
+  end
+  swap drop
+end
+
+proc str-len-diff ptr ptr -- int in // stk: a b -> len
+  // Returns length of b if all chars from a are removed from b
+  // Doesn't modify either string
+  memory a sizeof(Str) end
+  memory b sizeof(Str) end
+  @Str b !Str
+  @Str a !Str
+  a @Str.count // stk: len
+  while b @Str.count 0 > do
+    b @Str.data @8 a str-contains if 1 - end
+    b str-chop-one-left
+  end
+end
+
 // ARRAYS
 proc a[i] int ptr -- ptr in
   swap sizeof(int) * swap +ptr

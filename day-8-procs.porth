@@ -1,0 +1,39 @@
+include "helpers.porth"
+
+// Part 1
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory split sizeof(Str) end
+proc @split -- int ptr in split @Str end
+proc len(split) -- int in split @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+// Part 2
+memory digits sizeof(Str) 10 * end
+proc digits[i] int -- ptr in sizeof(Str) * digits +ptr end
+proc !digits[i] int ptr int in digits[i] !Str end
+proc @digits[i] int -- int ptr in digits[i] @Str end
+memory size_5_digits sizeof(Str) 3 * end // 2 3 5
+memory size_6_digits sizeof(Str) 3 * end // 0 6 9
+
+proc dump-digits in
+  "Digits known: \n" puts
+  0 while dup 10 < do
+    dup putu " " puts dup @digits[i] over 0 = if drop drop "UNKNOWN" end puts "\n" puts
+    1 +
+  end drop
+//  "Size 5 digits: \n" puts
+//  0 while dup 3 < do
+//    dup putu " " puts dup sizeof(Str) * size_5_digits +ptr @Str over 0 = if drop drop "UNKNOWN" end puts "\n" puts
+//    1 +
+//  end drop
+//  "Size 6 digits: \n" puts
+//  0 while dup 3 < do
+//    dup putu " " puts dup sizeof(Str) * size_6_digits +ptr @Str over 0 = if drop drop "UNKNOWN" end puts "\n" puts
+//    1 +
+//  end drop
+end
