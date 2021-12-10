@@ -13,6 +13,7 @@ proc len(word) -- int in word @Str.count end
 memory height sizeof(int) end
 memory width sizeof(int) end
 memory data sizeof(int) 100 * 100 * end // input is 100x100
+memory visited sizeof(bool) 100 * 100 * end // input is 100x100
 memory sum sizeof(int) end
 memory x sizeof(int) end
 memory y sizeof(int) end
@@ -32,6 +33,14 @@ end
 
 proc !data[x][y] int int int in // val x y
   @width * + data !a[i]
+end
+
+proc @visited[x][y] int int -- bool in // x y -> ret
+  @width * + visited @a[i] cast(bool)
+end
+
+proc !visited[x][y] bool int int in // val x y
+  @width * + swap cast(int) swap visited !a[i]
 end
 
 proc dump-data in
@@ -75,3 +84,89 @@ end // stk: y
   y inc64
 end
 sum @64 print
+
+// Part 2
+proc basin_size int int -- int in // x y -> size
+  memory _x sizeof(int) end
+  memory _y sizeof(int) end
+  _y !64 _x !64
+  1 // stk: ret
+  _x @64 _y @64 @data[x][y] // stk: ret digit
+  true _x @64 _y @64 !visited[x][y]
+
+  dup 9 = if drop 1 -
+  else
+    _x @64 0 > if dup _x @64 1 - _y @64 @data[x][y] <
+                  _x @64 1 - _y @64 @visited[x][y] lnot land if
+      swap _x @64 1 - _y @64 basin_size + swap
+    end end
+    _x @64 @width 1 - < if dup _x @64 1 + _y @64 @data[x][y] <
+                           _x @64 1 + _y @64 @visited[x][y] lnot land if
+      swap _x @64 1 + _y @64 basin_size + swap
+    end end
+    _y @64 0 > if dup _x @64 _y @64 1 - @data[x][y] <
+                  _x @64 _y @64 1 - @visited[x][y] lnot land if
+      swap _x @64 _y @64 1 - basin_size + swap
+    end end
+    _y @64 @height 1 - < if dup _x @64 _y @64 1 + @data[x][y] <
+                           _x @64 _y @64 1 + @visited[x][y] lnot land if
+      swap _x @64 _y @64 1 + basin_size + swap
+    end end
+    drop
+  end
+end
+
+memory max_three sizeof(int) 3 * end
+proc add_number_if_max int -- in
+  memory tmp sizeof(int) end
+  0 while dup 3 < do // stk: num idx
+    2dup max_three @a[i] > if
+      2 while 2dup < do // Loop from end back to idx, stk: num idx idx2
+        dup dup // stk: num i i2 i2 i2
+        1 - max_three @a[i] swap // stk: num i i2 max[i2-1] i2
+        max_three !a[i] // stk: num i i2
+        1 -
+      end drop // stk: num idx
+      2dup max_three !a[i]
+      drop 2
+    end
+    1 +
+  end drop
+  drop
+end
+
+proc dump_maxes in
+  "Max numbers:" puts
+  0 while dup 3 < do
+    " " puts dup max_three @a[i] putu
+    1 +
+  end drop
+  "\n" puts
+end
+
+0 !y while @y @height < do
+  0 !x while @x @width < do
+    @x @y @data[x][y] // stk: digit
+    @x 0 > if dup @x 1 - @y @data[x][y] < else true end
+    @x @width 1 - < if over @x 1 + @y @data[x][y] < else true end land
+    @y 0 > if over @x @y 1 - @data[x][y] < else true end land
+    @y @height 1 - < if over @x @y 1 + @data[x][y] < else true end land
+    if // This is the lowest, stk: digit
+      drop
+      @x @y basin_size
+ //     dup "Basin size at (" puts @x putu ", " puts @y putu "): " puts print
+      add_number_if_max
+//      dump_maxes
+    else drop end // stk:
+    x inc64
+  end
+  y inc64
+end
+
+1 // stk: mul
+0 while dup 3 < do // stk: mul idx
+  dup max_three @a[i] // stk: mul idx max
+  rot * swap // stk: mul idx
+  1 +
+end drop
+print
