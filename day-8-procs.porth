@@ -1,6 +1,6 @@
 include "helpers.porth"
 
-// Part 1
+// Input
 memory input sizeof(Str) end
 memory line sizeof(Str) end
 proc @line -- int ptr in line @Str end
