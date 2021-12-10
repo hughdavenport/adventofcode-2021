@@ -1,0 +1,54 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+proc *line -- int in line @Str.data @8 end
+
+memory stack sizeof(int) 200 * end // longest line in input is 109
+memory len(stack) sizeof(int) end
+proc push int in len(stack) @64 stack !a[i] len(stack) inc64 end
+proc pop -- int in len(stack) dec64 len(stack) @64 stack @a[i] end
+
+// ()  40  41      3 points
+// []  91  93     57 points
+// {} 123 125   1197 points
+// <>  60  62  25137 points
+
+read_stdin_to_str @Str input !Str
+0 // stk: acc
+while len(input) 0 > do
+  line input str-chop-line
+  while len(line) 0 > do
+    *line line str-chop-one-left // stk: acc c
+    dup 91 =
+    over 123 = lor
+    over 60 = lor if
+      2 + push
+    else dup 40 = if*
+      1 + push
+    else dup pop != if* // Popping
+      swap
+           over  41 = if      3
+      else over  93 = if*    57
+      else over 125 = if*  1197
+      else over  62 = if* 25137
+      else
+        here puts " Unknown char: " puts 1 line @Str.data 1 ptr- puts " (" puts over putu ")\n" puts
+        0
+      end
+//      here puts " Found mismatch, adding " puts dup print
+      + swap drop // stk: acc
+      0 line !Str.count // break
+    else
+      // It matched the pop
+      drop
+    end // stk: acc
+  end
+  // check for incomplete lines
+  while len(stack) @64 0 > do pop drop end
+end
+print
+// 417204 is too high
