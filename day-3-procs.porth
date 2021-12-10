@@ -87,8 +87,8 @@ proc update_selection int int in // stk: x search
     dup width @64 / current_keep @ptr @a[i] cast(bool) if // This row is selected (idx/width = y)
       2dup data @a[i] // stk: x search idx search digit
       = if // This is the digit we were searching for, stk: x search idx
-  	  sizeof(ptr) current_keep +ptr @ptr dec64 // decrement len(keep)
-	  false cast(int) over width @64 / current_keep @ptr !a[i] // don't keep this row for next time (idx/width = y)
+        sizeof(ptr) current_keep +ptr @ptr dec64 // decrement len(keep)
+        false cast(int) over width @64 / current_keep @ptr !a[i] // don't keep this row for next time (idx/width = y)
       end // stk: x search idx
     end
     width @64 + // Increment y portion of idx, stk: x search idx

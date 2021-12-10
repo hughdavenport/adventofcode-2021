@@ -26,8 +26,9 @@ while line input str-chop-line len(line) 0 > do
       part1_y over inc64-by // add num to y (part 1 only)
       aim swap inc64-by // add num to aim
     else over 2 = if* // up
-      part1_y over -1 * inc64-by // subtract num from y
-      aim swap -1 * inc64-by // subtract num from aim
+// TODO: Once porth.porth supports -1, change 0 1 - to -1
+      part1_y over 0 1 - * inc64-by // subtract num from y
+      aim swap 0 1 - * inc64-by // subtract num from aim
     else
       drop // UNKNOWN CODE
     end

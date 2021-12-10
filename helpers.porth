@@ -50,6 +50,9 @@ proc a[i]++ int ptr in
 end
 
 // MATH
+// FIXME: porth.py supports -1, porth.porth does not. .py doesn't allow following proc, .porth does
+// proc -1 -- int in 0 1 - end
+
 proc min_max int int -- int int in
   2dup
   max swap
@@ -64,5 +67,5 @@ proc min_max int int -- int int in
 end
 
 proc abs int -- int in
-  dup 0 < if -1 * end
+  dup 0 < if 0 1 - * end
 end

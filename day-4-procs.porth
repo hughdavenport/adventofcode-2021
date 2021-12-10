@@ -118,6 +118,7 @@ proc is_bingo int -- bool in // stk: board_idx -> bingo
       drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
     else over over BOARD_CELL_SIZE * swap +ptr has_col if* // This col is a bingo
       drop drop drop true 0 cast(ptr) 5 // return true (should break loop)
+    else // TODO: Once porth.porth allows end with if*, remove
     end // stk: ret cell_p idx
     1 +
   end drop drop // stk:

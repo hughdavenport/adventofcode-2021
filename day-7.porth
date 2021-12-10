@@ -36,6 +36,7 @@ proc numbers_min_max -- int int in
       dup _min !64
     else dup _max @64 > if* // num is new max, stk: idx num
       dup _max !64
+    else // TODO: Once porth.porth allows end with if*, remove
     end drop // stk: idx
     1 +
   end drop
