@@ -1,0 +1,25 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+read_stdin_to_str @Str input !Str
+while len(input) 0 > do
+  line input str-chop-line
+//  "line |" puts @line puts "|\n" puts
+  while len(line) 0 > do
+    word line str-chop-word
+    @word try-parse-int if
+//      dup "int |" puts putu "|\n" puts
+    else
+//      dup "str |" puts putu "|" puts @word puts "|\n" puts
+    end
+    drop
+  end
+end
