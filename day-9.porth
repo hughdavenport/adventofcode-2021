@@ -1,0 +1,77 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory split sizeof(Str) end
+proc @split -- int ptr in split @Str end
+proc len(split) -- int in split @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+memory height sizeof(int) end
+memory width sizeof(int) end
+memory data sizeof(int) 100 * 100 * end // input is 100x100
+memory sum sizeof(int) end
+memory x sizeof(int) end
+memory y sizeof(int) end
+
+proc @x -- int in x @64 end
+proc !x int -- in x !64 end
+proc @y -- int in y @64 end
+proc !y int -- in y !64 end
+proc @width -- int in width @64 end
+proc !width int -- in width !64 end
+proc @height -- int in height @64 end
+proc !height int -- in height !64 end
+
+proc @data[x][y] int int -- int in // x y -> ret
+  @width * + data @a[i]
+end
+
+proc !data[x][y] int int int in // val x y
+  @width * + data !a[i]
+end
+
+proc dump-data in
+  0 while dup @height < do
+    0 while dup @width < do
+      2dup swap @data[x][y] putu
+      1 +
+    end drop
+    "\n" puts
+    1 +
+  end drop
+end
+
+read_stdin_to_str @Str input !Str
+0 // stk: y
+while line input str-chop-line line ?str-empty lnot do
+  len(line) !width
+  0 // stk: y x
+  while line ?str-empty lnot do
+    2dup swap line @Str.data @8 '0' - rot rot !data[x][y]
+    line str-chop-one-left
+    1 +
+  end // stk: y x
+  drop
+  1 +
+end // stk: y
+!height
+
+0 !y while @y @height < do
+  0 !x while @x @width < do
+    @x @y @data[x][y] // stk: digit
+    @x 0 > if dup @x 1 - @y @data[x][y] < else true end
+    @x @width 1 - < if over @x 1 + @y @data[x][y] < else true end land
+    @y 0 > if over @x @y 1 - @data[x][y] < else true end land
+    @y @height 1 - < if over @x @y 1 + @data[x][y] < else true end land
+    if // This is the lowest, stk: digit
+      1 + sum swap inc64-by
+    else drop end
+    x inc64
+  end
+  y inc64
+end
+sum @64 print
