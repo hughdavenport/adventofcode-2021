@@ -1,0 +1,69 @@
+// User land stack
+// TODO: Auto expand stacks
+const STACK_CAP 1000 end
+const offsetof(Stack.count) sizeof(u64) offset end
+const offsetof(Stack.data) sizeof(ptr) offset end
+const sizeof(Stack) reset end
+
+proc Stack.count ptr -- ptr in offsetof(Stack.count) ptr+ end
+proc Stack.data ptr -- ptr in offsetof(Stack.data) ptr+ end
+proc @Stack.count ptr -- int in Stack.count @64 end
+proc @Stack.data ptr -- ptr in Stack.data  @64 cast(ptr) end
+proc !Stack.count int ptr in Stack.count !64 end
+proc !Stack.data ptr ptr in Stack.data  !64 end
+
+memory stacks sizeof(int) STACK_CAP * STACK_CAP * end
+memory len(stacks) sizeof(u64) end
+
+proc stack_init ptr in
+  len(stacks) @64 STACK_CAP = if
+    here eputs " Overflow in stack_init\n" eputs
+    1 exit
+  end
+  len(stacks) @64 stacks +ptr swap !Stack.data
+  len(stacks) inc64
+end
+
+proc stack_push
+  int ptr // val stack
+    in
+  swap over // stk: stack val stack
+  dup @Stack.count // stk: stack val stack count
+  // TODO auto expand stacks
+  dup STACK_CAP = if
+    here eputs " Overflow in stack_push\n" eputs
+    1 exit
+  end // stk: stack val stack count
+  rot swap rot @Stack.data !a[i] // stk: stack
+  Stack.count inc64 // stk:
+end
+
+proc stack_pop
+    ptr // stack
+    --
+    int // ret
+  in
+  dup @Stack.count // stk: stack count
+  dup 0 = if
+    here eputs " Underflow in stack_pop\n" eputs
+    1 exit
+  end // stk: stack count
+  1 - over @Stack.data over swap @a[i] // stk: stack count-1 ret
+  swap rot !Stack.count // stk: ret
+end
+
+proc stack_empty? ptr -- bool in
+  @Stack.count 0 =
+end
+
+proc stack_dump ptr in
+  memory _s sizeof(ptr) end
+  _s !ptr
+  "Stack: [" puts
+  _s @ptr @Stack.count 1 - while dup 0 >= do
+    dup _s @ptr @Stack.data @a[i] putu
+    dup 0 != if ", " puts end
+    1 -
+  end drop
+  "]\n" puts
+end

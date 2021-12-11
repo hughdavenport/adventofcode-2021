@@ -1,0 +1,22 @@
+include "helpers.porth"
+
+memory stack sizeof(Stack) end
+stack stack_init
+
+"Empty\n" puts
+stack stack_dump
+
+1 stack stack_push
+2 stack stack_push
+3 stack stack_push
+4 stack stack_push
+5 stack stack_push
+"After 1 2 3 4 5\n" puts
+stack stack_dump
+"Popping " puts stack stack_pop print
+stack stack_dump
+"New stack\n" puts
+memory stack2 sizeof(Stack) end
+stack2 stack_init stack2 stack_dump
+"Existing stack\n" puts
+stack stack_dump

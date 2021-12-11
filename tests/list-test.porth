@@ -1,0 +1,42 @@
+include "helpers.porth"
+
+memory list sizeof(List) end
+list list_init
+"Empty list\n" puts
+list list_dump
+
+1 list list_add
+1 list list_add
+2 list list_add
+3 list list_add
+5 list list_add
+8 list list_add
+13 list list_add
+"Adding some fib numbers\n" puts
+list list_dump
+list @List.count print
+
+"Removing 4th elem\n" puts
+4 list list_remove print
+list @List.count print
+list list_dump
+
+"Setting 0 to 0\n" puts
+0 0 list list_set
+list list_dump
+
+"Inserting 99 at position 2\n" puts
+99 2 list list_insert
+list list_dump
+
+"New list\n" puts
+memory list2 sizeof(List) end
+list2 list_init list2 list_dump
+
+"Existing list\n" puts
+list list_dump
+
+"Sorting list\n" puts
+list list_sort
+list list_dump
+

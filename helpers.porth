@@ -57,20 +57,26 @@ proc str-len-diff ptr ptr -- int in // stk: a b -> len
   end
 end
 
-// ARRAYS
+// ARRAYS, you have to keep track of length
 proc a[i] int ptr -- ptr in
   swap sizeof(int) * swap +ptr
 end
 
-proc !a[i] int int ptr in
+proc !a[i]
+    int int ptr // val idx a
+  in
   a[i] !64
 end
 
-proc @a[i] int ptr -- int in
+proc @a[i]
+    int ptr // idx a
+    --
+    int     // val
+  in
   a[i] @64
 end
 
-proc a[i]++ int ptr in
+proc a[i]++ int ptr in // idx a
   a[i] dup @64 1 + swap !64
 end
 
@@ -94,3 +100,7 @@ end
 proc abs int -- int in
   dup 0 < if 0 1 - * end
 end
+
+// My custom std
+include "std/stack.porth"
+include "std/list.porth"

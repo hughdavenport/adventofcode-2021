@@ -1,0 +1,127 @@
+const LIST_CAP 1000 end
+const offsetof(List.count) sizeof(u64) offset end
+const offsetof(List.data) sizeof(ptr) offset end
+const sizeof(List) reset end
+
+proc List.count ptr -- ptr in offsetof(List.count) ptr+ end
+proc List.data ptr -- ptr in offsetof(List.data) ptr+ end
+proc @List.count ptr -- int in List.count @64 end
+proc @List.data ptr -- ptr in List.data  @64 cast(ptr) end
+proc !List.count int ptr in List.count !64 end
+proc !List.data ptr ptr in List.data  !64 end
+
+memory lists sizeof(int) LIST_CAP * LIST_CAP * end
+memory len(lists) sizeof(u64) end
+
+proc list_init ptr in
+  len(lists) @64 LIST_CAP = if
+    here eputs " Overflow in list_init\n" eputs
+    1 exit
+  end
+  len(lists) @64 lists +ptr swap !List.data
+  len(lists) inc64
+end
+
+proc list_empty? ptr -- bool in
+  @List.count 0 =
+end
+
+proc list_set int int ptr in
+  over over swap dup 0 < rot rot swap @List.count >= lor if
+    here eputs " Index Out Of Bounts in list_set\n" eputs
+    1 exit
+  end
+  @List.data !a[i]
+end
+
+proc list_get int ptr -- int in
+  over over swap dup 0 < rot rot swap @List.count >= lor if
+    here eputs " Index Out Of Bounts in list_get\n" eputs
+    1 exit
+  end
+  @List.data @a[i]
+end
+
+proc list_remove
+  int ptr // idx list
+  --
+  int     // ret
+    in
+  memory _l sizeof(ptr) end
+  _l !ptr
+  _l @ptr @List.count 0 = if
+    here eputs " Underflow in list_remove\n" eputs
+    1 exit
+  end
+  dup _l @ptr list_get swap // stk: ret idx
+  while dup _l @ptr @List.count 1 - < do
+    dup 1 + _l @ptr list_get over _l @ptr list_set
+    1 +
+  end drop
+  _l @ptr List.count dec64
+end
+
+proc list_insert
+  int int ptr // val idx list
+    in
+  memory _l sizeof(ptr) end
+  _l !ptr
+  _l @ptr @List.count LIST_CAP = if
+    here eputs " Overflow in list_insert\n" eputs
+    1 exit
+  end // stk: val idx
+  _l @ptr List.count inc64
+  _l @ptr @List.count 1 - while 2dup < do
+    dup 1 - _l @ptr list_get over _l @ptr list_set
+    1 -
+  end drop
+  _l @ptr list_set
+end
+
+proc list_add
+  int ptr // val list
+    in
+  swap over // stk: list val list
+  dup @List.count // stk: list val list count
+  // TODO auto expand lists
+  dup LIST_CAP = if
+    here eputs " Overflow in list_add\n" eputs
+    1 exit
+  end // stk: list val list count
+  swap List.count inc64
+  rot list_set
+end
+
+proc list_dump ptr in
+  memory _l sizeof(ptr) end
+  _l !ptr
+  "List: [" puts
+  0 while dup _l @ptr @List.count < do // stk : idx
+    dup 0 != if ", " puts end
+    dup _l @ptr list_get putu
+    1 +
+  end drop
+  "]\n" puts
+end
+
+proc list_sort ptr in
+  // Bubble sort adapted from examples/bubble-sort.porth
+  // TODO Optimized solution
+  memory _l sizeof(ptr) end
+  _l !ptr
+  memory i sizeof(u64) end
+  _l @ptr @List.count 1 - i !64
+  while i @64 1 > do
+    0 while dup i @64 < do
+      dup   _l @ptr list_get
+      i @64 _l @ptr list_get
+      > if
+        dup   _l @ptr @List.data a[i]
+        i @64 _l @ptr @List.data a[i]
+        swap64
+      end
+      1 +
+    end drop
+    i dec64
+  end
+end
