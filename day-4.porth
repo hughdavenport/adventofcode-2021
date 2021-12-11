@@ -3,8 +3,8 @@ include "day-4-procs.porth"
 read_numbers
 while read_board do end
 
-0 while dup len(numbers) @64 < do // for each number, stk: num_idx
-  dup @numbers[i] // stk: num_idx num
+0 while dup numbers @List.count < do // for each number, stk: num_idx
+  dup numbers list_get // stk: num_idx num
 
   boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do // For each cell on each board, stk: num_idx num cell_p
     swap over @64 // stk: num_idx cell_p num cell
@@ -23,7 +23,7 @@ while read_board do end
       true over sizeof(bool) * bingos +ptr !bool
 // part 2 wants the last board to win, so keep going
 //      drop drop drop
-//      len(numbers) @64 0 len(boards) @64 // break
+//      numbers @List.count 0 len(boards) @64 // break
     end
     1 + // stk: num_idx num board_idx
   end drop drop // stk: num_idx

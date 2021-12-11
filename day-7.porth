@@ -1,37 +1,15 @@
 include "helpers.porth"
 
-memory numbers sizeof(int) 1000 * end // input has 1000 numbers
-memory len(numbers) sizeof(int) end
+memory numbers sizeof(List) end
+numbers list_init
 memory fuel sizeof(int) end
-
-proc !numbers[i] int int in
-  numbers !a[i]
-end
-
-proc @numbers[i] int -- int in
-  numbers @a[i]
-end
-
-proc add_number int in
-  len(numbers) @64 !numbers[i]
-  len(numbers) inc64
-end
-
-proc dump_numbers in
-  0 while dup len(numbers) @64 < do
-    dup 0 > if "," puts end
-    dup @numbers[i] putu
-    1 +
-  end drop
-  "\n" puts
-end
 
 proc numbers_min_max -- int int in
   memory _min sizeof(int) end
   memory _max sizeof(int) end
-  0 @numbers[i] 1 @numbers[i] min_max _max !64 _min !64 // stk:
-  2 while dup len(numbers) @64 < do  // stk: idx
-    dup @numbers[i] // stk: idx num
+  0 numbers list_get 1 numbers list_get min_max _max !64 _min !64 // stk:
+  2 while dup numbers @List.count < do  // stk: idx
+    dup numbers list_get // stk: idx num
     dup _min @64 < if // num is new min, stk: idx num
       dup _min !64
     else dup _max @64 > if* // num is new max, stk: idx num
@@ -46,8 +24,8 @@ end
 proc calculate_fuel_part1 int -- int in // stk: target -> fuel
   memory _fuel sizeof(int) end
   0 _fuel !64
-  0 while dup len(numbers) @64 < do // stk: target idx
-    2dup @numbers[i] - abs _fuel swap inc64-by // stk: target idx
+  0 while dup numbers @List.count < do // stk: target idx
+    2dup numbers list_get - abs _fuel swap inc64-by // stk: target idx
     1 +
   end drop drop
   _fuel @64
@@ -56,8 +34,8 @@ end
 proc calculate_fuel_part2 int -- int in // stk: target -> fuel
   memory _fuel sizeof(int) end
   0 _fuel !64
-  0 while dup len(numbers) @64 < do // stk: target idx
-    2dup @numbers[i] - abs dup 1 + * 2 / _fuel swap inc64-by // stk: target idx
+  0 while dup numbers @List.count < do // stk: target idx
+    2dup numbers list_get - abs dup 1 + * 2 / _fuel swap inc64-by // stk: target idx
     1 +
   end drop drop
   _fuel @64
@@ -70,11 +48,11 @@ proc len(digit) -- int in digit @Str.count end
 read_stdin_to_str @Str input !Str
 
 while ',' digit input str-chop-by-delim len(digit) 0 > do
-  @digit try-parse-int drop add_number
+  @digit try-parse-int drop numbers list_add
 end
 
 numbers_min_max // stk: min max
-2dup - abs len(numbers) @64 * fuel !64 // Save worst case, stk: min max
+2dup - abs numbers @List.count * fuel !64 // Save worst case, stk: min max
 while 2dup <= do // Loop from min to max, stk: idx max
   over calculate_fuel_part1 // stk: idx max fuel
   dup fuel @64 < if fuel !64 else drop end // stk: idx max
@@ -84,13 +62,13 @@ fuel @64 print
 
 // Part 2, I think the optimal alignment will be round(avg(numbers)
 0 // stk: sum
-0 while dup len(numbers) @64 < do // stk: sum idx
-  dup @numbers[i] // stk: sum idx num
+0 while dup numbers @List.count < do // stk: sum idx
+  dup numbers list_get // stk: sum idx num
   rot + swap // stk: sum idx
   1 +
 end drop // stk: sum
 // Sum for my input is 466571, len is 1000, avg is 466.571
-len(numbers) @64 divmod 2 * len(numbers) @64 > if 1 + end // stk: target
+numbers @List.count divmod 2 * numbers @List.count > if 1 + end // stk: target
 calculate_fuel_part2
 // Gets too high on submission, use it as a high value for doing brute force search
 fuel !64

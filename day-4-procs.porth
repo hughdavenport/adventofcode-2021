@@ -2,33 +2,15 @@ include "helpers.porth"
 
 const BOARD_SIZE 5 5 * end
 const BOARD_CELL_SIZE sizeof(int) sizeof(bool) + end
-memory numbers sizeof(int) 100 * end // input has 100 in it
-memory len(numbers) sizeof(int) end
+memory numbers sizeof(List) end
 memory boards BOARD_SIZE BOARD_CELL_SIZE * 100 * end // input has 100 boards in it
 memory len(boards) sizeof(int) end
 memory p sizeof(ptr) end
 memory bingos sizeof(bool) 100 * end // input has 100 boards in it
 memory result sizeof(int) end // Save scores to this, the last one will be the one there at the end
 boards p !ptr
+numbers list_init
 
-proc @numbers[i] int -- int in
-  numbers @a[i]
-end
-
-proc add_number int in
-  len(numbers) @64 numbers !a[i]
-  len(numbers) inc64
-end
-
-proc dump_numbers in
-  "numbers: " puts
-  0 while dup len(numbers) @64 < do
-    dup sizeof(int) * numbers +ptr @64 putu
-    " " puts
-    1 +
-  end drop
-  "\n" puts
-end
 
 memory input sizeof(Str) end
 proc len(input) -- int in input @Str.count end
@@ -43,7 +25,7 @@ read_stdin_to_str @Str input !Str
 proc read_numbers in
   line input str-chop-line
   while ',' word line str-chop-by-delim len(word) 0 > do
-    word @Str try-parse-int drop add_number
+    word @Str try-parse-int drop numbers list_add
   end
 end
 
