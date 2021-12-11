@@ -1,5 +1,6 @@
 #!/bin/sh
 FAIL=0
+SIMULATE=0
 
 # Colors for printing pass/fail
 GREEN=$(tput setaf 64)
@@ -66,7 +67,11 @@ for DAY in $(seq "${START}" "${END}"); do
   ${PORTH} com -s "$PORTH_FILE"
   if [ $? -eq 0 ]; then
     pass
-    test_inputs "./output" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    time test_inputs "./output" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    [ $SIMULATE -eq 1 ] && {
+      echo "Testing sim mode"
+      time test_inputs "${PORTH} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    }
   else
     fail
     echo "here"
@@ -75,7 +80,11 @@ for DAY in $(seq "${START}" "${END}"); do
   ${PORTH_PY} com -s "$PORTH_FILE"
   if [ $? -eq 0 ]; then
     pass
-    test_inputs "./day-${DAY}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    time test_inputs "./day-${DAY}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    [ $SIMULATE -eq 1 ] && {
+      echo "Testing sim mode"
+      time test_inputs "${PORTH_PY} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    }
   else
     fail
     echo "here"
