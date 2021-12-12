@@ -133,3 +133,19 @@ read_input
   1 +
 end drop
 print
+
+// Part 2, assume it wasn't reached in first 100
+proc is_synchronized -- bool in
+  true
+  0 while over over N N * < land do
+    dup data list_get 0 != if
+      swap drop false swap
+    end
+    1 +
+  end drop
+end
+100 while is_synchronized lnot do
+  simulate drop
+  1 +
+end
+print
