@@ -20,7 +20,7 @@ test_input() {
   OUTPUT_PREFIX="${3}"
   DIFF_TMP=$(mktemp)
   TYPE="${4}"
-  if [ "${TYPE}" = "example" ]; then
+  if [[ "${TYPE}" =~ ^example(-[0-9][0-9]*)?$ ]]; then
     INPUT_FILE="${INPUT_PREFIX}.${TYPE}"
     OUTPUT_FILE="${OUTPUT_PREFIX}.${TYPE}"
   else
@@ -47,6 +47,9 @@ test_inputs() {
   INPUT_PREFIX="${2}"
   OUTPUT_PREFIX="${3}"
   [ -z "${4}" -o "${4}" = "example" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example"
+  for I in `seq 2 99`; do
+    [ -f "${INPUT_PREFIX}.example-${I}" ] && [ -z "${4}" -o "${4}" = "example" -o "${4}" = "example-${I}" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example-${I}"
+  done
   [ -z "${4}" -o "${4}" = "actual" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "actual"
 }
 
