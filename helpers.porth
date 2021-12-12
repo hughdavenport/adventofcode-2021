@@ -57,6 +57,85 @@ proc str-len-diff ptr ptr -- int in // stk: a b -> len
   end
 end
 
+proc newline in "\n" puts end
+
+// EXE
+
+proc exe_fork ptr ptr in // argv file
+  memory wstatus sizeof(u64) end
+  memory empty_envp sizeof(ptr) end
+  0 empty_envp !64
+
+  memory argvp sizeof(ptr) end
+  argvp !64
+
+  memory file-path sizeof(ptr) end
+  file-path !64
+
+  fork
+  dup 0 = if // In child
+    drop
+    empty_envp
+    argvp @ptr
+    file-path @ptr
+    execve drop
+    "execve(2) failed\n" eputs
+  else dup 0 > if*
+    drop
+    NULL
+    0
+    wstatus
+    0 1 - // TODO: replace this with -1 when we support negative numbers
+    wait4 0 < if
+      "[ERROR] could not wait until the child process has finished executing\n" eputs
+      1 exit
+    end
+  else
+    drop
+    "[ERROR] could not fork a child\n" eputs
+    1 exit
+  end
+end
+
+// TERMINAL COLORS
+
+proc font_tput_term_arg -- ptr in
+  memory term_arg sizeof(int) 50 * end // Shouldn't have larger
+  "-T" term_arg cstr-to-str str-starts-with if
+    // Already computed
+  else
+    "TERM" getenv
+    dup NULL ptr= over cstrlen 0 = lor if
+      drop "linux"c // Set a default TERM
+    end
+    dup cstrlen 1 + dup 50 >= if
+      here eputs " Overflow in setting $TERM\n" eputs
+      1 exit
+    end
+    "-T" term_arg memcpy drop
+    swap 2 term_arg +ptr memcpy drop
+  end
+  term_arg
+end
+
+proc font_bold in
+  memory argvp sizeof(ptr) 4 * end
+  "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr
+  font_tput_term_arg argvp 1 8 * ptr+ !ptr
+  "bold"c argvp 2 8 * ptr+ !ptr
+  NULL argvp 3 8 * ptr+ !ptr
+  argvp @ptr argvp exe_fork
+end
+
+proc font_reset in
+  memory argvp sizeof(ptr) 4 * end
+  "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr
+  font_tput_term_arg argvp 1 8 * ptr+ !ptr
+  "sgr0"c argvp 2 8 * ptr+ !ptr
+  NULL argvp 3 8 * ptr+ !ptr
+  argvp @ptr argvp exe_fork
+end
+
 // ARRAYS, you have to keep track of length
 proc a[i] int ptr -- ptr in
   swap sizeof(int) * swap +ptr
