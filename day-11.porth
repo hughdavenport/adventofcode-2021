@@ -1,0 +1,135 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+proc *line -- int in line @Str.data @8 end
+
+const N 10 end // Size is 10 for both example and input
+memory data sizeof(List) end
+
+proc dump_data in
+  "Data:\n" puts
+  0 while dup N < do
+    0 while dup N < do
+      2dup swap N * + data list_get
+      dup 0 = over 9 > lor if font_bold end
+      dup 9 > if drop "*" puts else putu end
+      font_reset
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+end
+
+proc read_input in
+  data list_init
+  read_stdin_to_str @Str input !Str
+  while len(input) 0 > do
+    line input str-chop-line
+    while len(line) 0 > do
+      *line '0' - line str-chop-one-left
+      data list_add
+    end
+  end
+end
+
+proc compute_idx int int -- int in // y x -> idx
+  swap N * +
+end
+
+proc compute_x_y int -- int int in
+  N divmod
+end
+
+proc increment_and_maybe_flash int -- bool in // idx -> flashed
+  dup data list_get 1 + over data list_set
+  dup data list_get 10 =
+  swap drop
+end
+
+proc flash int -- int in // idx -> flashes
+  // Add one to all neighbours, incl diagonal
+  memory flashes sizeof(int) end
+  1 flashes !64
+  compute_x_y // stk: y x
+  dup 0 > if // do x-1,y
+    2dup 1 - compute_idx // stk: y x idx(x-1,y)
+    dup increment_and_maybe_flash if
+      dup flash flashes @64 + flashes !64
+    end drop
+    over 0 > if // do x-1,y-1
+      2dup swap 1 - swap 1 - compute_idx // stk: y x idx(x-1,y-1)
+      dup increment_and_maybe_flash if
+        dup flash flashes @64 + flashes !64
+      end drop
+    end
+    over N 1 - < if // do x-1,y+1
+      2dup swap 1 + swap 1 - compute_idx // stk: y x idx(x-1,y+1)
+      dup increment_and_maybe_flash if
+        dup flash flashes @64 + flashes !64
+      end drop
+    end
+  end
+  over 0 > if // do x,y-1
+    2dup swap 1 - swap compute_idx // stk: y x idx(x,y-1)
+    dup increment_and_maybe_flash if
+      dup flash flashes @64 + flashes !64
+    end drop
+  end
+  over N 1 - < if // do x,y+1
+    2dup swap 1 + swap compute_idx // stk: y x idx(x,y-1)
+    dup increment_and_maybe_flash if
+      dup flash flashes @64 + flashes !64
+    end drop
+  end
+  dup N 1 - < if // do x+1,y
+    2dup 1 + compute_idx // stk: y x idx(x+1,y)
+    dup increment_and_maybe_flash if
+      dup flash flashes @64 + flashes !64
+    end drop
+    over 0 > if // do x+1,y-1
+      2dup swap 1 - swap 1 + compute_idx // stk: y x idx(x+1,y-1)
+      dup increment_and_maybe_flash if
+        dup flash flashes @64 + flashes !64
+      end drop
+    end
+    over N 1 - < if // do x+1,y+1
+      2dup swap 1 + swap 1 + compute_idx // stk: y x idx(x+1,y+1)
+      dup increment_and_maybe_flash if
+        dup flash flashes @64 + flashes !64
+      end drop
+    end
+  end
+  2drop
+  flashes @64
+end
+
+proc simulate -- int in // flashes
+  0 // stk: flashes
+  0 while dup N N * < do // stk: ret idx
+    dup increment_and_maybe_flash if
+      dup flash rot + swap
+    end
+    1 +
+  end drop
+  // Reset flashed ones
+  0 while dup N N * < do
+    dup data list_get 9 > if 0 over data list_set end
+    1 +
+  end drop
+end
+
+read_input
+//dump_data
+0 // stk: acc
+0 while dup 100 < do // stk: acc idx
+  swap simulate + swap
+//  "Iteration: " puts dup 1 + print
+//  dump_data
+  1 +
+end drop
+print
