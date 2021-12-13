@@ -1,0 +1,101 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+const N 1500 end // input has max value of 1310, 1500 is just nice and round
+memory data sizeof(bool) N N * *  end
+memory max_y sizeof(int) end
+memory max_x sizeof(int) end
+
+proc idx int int -- int in // x y -> idx
+  N * +
+end
+
+proc x_y int -- int int in // idx -> x y
+  N divmod swap
+end
+
+proc size -- int in
+  0
+  0 while dup N < do
+    0 while dup N < do
+      2dup swap idx data @a[i] cast(bool) if rot 1 + rot rot end
+      1 +
+    end drop
+    1 +
+  end drop
+end
+
+proc dump_data in
+  0 while dup max_y @64 < do
+    0 while dup max_x @64 < do
+      2dup swap idx data @a[i] cast(bool) if "#" else "." end puts
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+  "Size: " puts size print
+end
+
+proc fold_x int in
+  memory fold sizeof(int) end
+  fold !64
+  0 while dup max_y @64 < do // y
+    fold @64 while dup max_x @64 < do // y x
+      2dup swap idx data @a[i] cast(bool) if
+        2dup fold @64 % fold @64 - abs fold @64 % swap // y x x_new y
+        idx true cast(int) swap data !a[i]
+        2dup swap idx false cast(int) swap data !a[i]
+      end
+      1 +
+    end drop
+    1 +
+  end drop
+  fold @64 max_x !64
+end
+
+proc fold_y int in
+  memory fold sizeof(int) end
+  dup fold !64
+  while dup max_y @64 < do // y
+    0 while dup max_x @64 < do // y x
+      2dup swap idx data @a[i] cast(bool) if
+        2dup swap fold @64 % fold @64 - abs fold @64 % // y x x y_new
+        idx true cast(int) swap data !a[i]
+        2dup swap idx false cast(int) swap data !a[i]
+      end
+      1 +
+    end drop
+    1 +
+  end drop
+  fold @64 max_y !64
+end
+
+proc fold in
+  line input str-chop-line '=' word line str-chop-by-delim line @Str try-parse-int drop
+  line @Str.data 2 ptr- @8 'y' = if
+    fold_y
+  else
+    fold_x
+  end
+end
+
+read_stdin_to_str @Str input !Str
+while line input str-chop-line len(line) 0 > do
+  ',' word line str-chop-by-delim
+  word @Str try-parse-int drop line @Str try-parse-int drop // x y
+  2dup 1 + max_y @64 max max_y !64 1 + max_x @64 max max_x !64
+  idx true cast(int) swap data !a[i]
+end
+//dump_data
+fold
+//dump_data
+size print
