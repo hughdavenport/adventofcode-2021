@@ -84,28 +84,44 @@ end
 memory indent sizeof(int) end
 proc print_indent in 0 while dup indent @64 < do " " puts 1 + end drop end
 
+memory part2_used sizeof(bool) end
+
 proc find_path ptr -- int in
   memory ret sizeof(int) end
 //print_indent "Finding path from " puts dup @Cave.name puts "\n" puts
 indent inc64
   dup Cave.visited inc64
+  dup @Cave.big lnot over @Cave.visited 2 = land if
+    true part2_used !bool
+  end
   dup @Cave.name "end" streq if
     1 ret !64
   else
     0 ret !64
     dup Cave.neighbours 0 while over over swap @List.count < do // c1 n idx
       over over swap list_get cast(ptr) // c1 n idx c2
-      dup @Cave.big lnot over @Cave.visited 1 < land
-      over @Cave.big lor if
+      dup @Cave.big lnot over @Cave.visited 1 < land // Is it small and hasn't been visited
+        over dup dup @Cave.big lnot                  // Is it small and ...
+          swap @Cave.name "start" streq lnot land    //  isn't the start and ...
+          swap @Cave.visited 2 < land                //  hasn't been visited more than once so far and ...
+          part2_used @bool lnot land lor             //  we haven't been to a small one twice so far
+        over @Cave.big lor if                        // Or, is it just a big cave which we can visit lots
         dup find_path ret swap inc64-by
       end drop
       1 +
     end drop drop
   end
-  Cave.visited dec64
+  dup Cave.visited dec64
+  dup @Cave.big lnot over @Cave.visited 1 = land if
+    false part2_used !bool
+  end
+  drop
 indent dec64
   ret @64
 end
 
 //dump_caves
+true part2_used !bool // Ignore the part 2 for now
+"start" find_cave find_path print
+false part2_used !bool
 "start" find_cave find_path print
