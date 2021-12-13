@@ -9,17 +9,103 @@ memory word sizeof(Str) end
 proc @word -- int ptr in word @Str end
 proc len(word) -- int in word @Str.count end
 
+const offsetof(Cave.name) sizeof(Str) offset end        // Name of cave
+const offsetof(Cave.neighbours) sizeof(List) offset end // list of ptr's to caves
+const offsetof(Cave.visited) sizeof(int) offset end     // number of times it has been visited
+const offsetof(Cave.big) sizeof(bool) offset end        // whether the cave is big or not
+const sizeof(Cave) reset end
+
+proc Cave.name ptr -- ptr in offsetof(Cave.name) ptr+ end
+proc Cave.neighbours ptr -- ptr in offsetof(Cave.neighbours) ptr+ end
+proc Cave.visited ptr -- ptr in offsetof(Cave.visited) ptr+ end
+proc Cave.big ptr -- ptr in offsetof(Cave.big) ptr+ end
+proc @Cave.name ptr -- int ptr in Cave.name @Str end
+proc @Cave.neighbours ptr -- ptr in Cave.neighbours @ptr end
+proc @Cave.visited ptr -- int in Cave.visited @64 end
+proc @Cave.big ptr -- bool in Cave.big @bool end
+proc !Cave.name int ptr ptr in Cave.name !Str end
+proc !Cave.neighbours ptr ptr in Cave.neighbours !ptr end
+proc !Cave.visited int ptr in Cave.visited !64 end
+proc !Cave.big bool ptr in Cave.big !bool end
+
+const N 12 end
+memory caves sizeof(Cave) N * end // input has 12 caves
+
+proc dump_caves in
+  caves while dup Cave.name ?str-empty lnot do
+    dup Cave.neighbours // c1 neighbours
+    0 while over over swap @List.count < do // c1 n idx
+      rot dup @Cave.name puts "-" puts rot rot
+      over over swap list_get cast(ptr) @Cave.name puts "\n" puts
+      1 +
+    end drop drop
+    sizeof(Cave) ptr+
+  end drop
+end
+
+proc find_cave int ptr -- ptr in
+  memory name sizeof(Str) end
+  name !Str
+  caves while
+      dup caves sizeof(Cave) N * ptr+ ptr<
+      over @Cave.name name @Str streq lnot
+      land do
+    dup Cave.name ?str-empty if // Cave doesn't exist, add a new one
+      dup name @Str rot !Cave.name
+      dup Cave.neighbours list_init
+      name @Str swap drop @8 isupper over !Cave.big
+    else
+      sizeof(Cave) ptr+
+    end
+  end
+  dup caves sizeof(Cave) N * ptr+ ptr= if
+    // Unreachable
+    drop NULL
+  end
+end
+
+proc add_neighbours ptr ptr in // Will add both neighbours as each other
+  memory c1 sizeof(ptr) end
+  memory c2 sizeof(ptr) end
+  c2 !ptr c1 !ptr
+  c2 @ptr cast(int) c1 @ptr Cave.neighbours list_add
+  c1 @ptr cast(int) c2 @ptr Cave.neighbours list_add
+end
+
 read_stdin_to_str @Str input !Str
 while len(input) 0 > do
   line input str-chop-line
-//  "line |" puts @line puts "|\n" puts
-  while len(line) 0 > do
-    word line str-chop-word
-    @word try-parse-int if
-//      dup "int |" puts putu "|\n" puts
-    else
-//      dup "str |" puts putu "|" puts @word puts "|\n" puts
-    end
-    drop
-  end
+  '-' word line str-chop-by-delim
+  word @Str find_cave
+  line @Str find_cave
+  add_neighbours
 end
+
+memory indent sizeof(int) end
+proc print_indent in 0 while dup indent @64 < do " " puts 1 + end drop end
+
+proc find_path ptr -- int in
+  memory ret sizeof(int) end
+//print_indent "Finding path from " puts dup @Cave.name puts "\n" puts
+indent inc64
+  dup Cave.visited inc64
+  dup @Cave.name "end" streq if
+    1 ret !64
+  else
+    0 ret !64
+    dup Cave.neighbours 0 while over over swap @List.count < do // c1 n idx
+      over over swap list_get cast(ptr) // c1 n idx c2
+      dup @Cave.big lnot over @Cave.visited 1 < land
+      over @Cave.big lor if
+        dup find_path ret swap inc64-by
+      end drop
+      1 +
+    end drop drop
+  end
+  Cave.visited dec64
+indent dec64
+  ret @64
+end
+
+//dump_caves
+"start" find_cave find_path print

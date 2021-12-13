@@ -20,7 +20,7 @@ proc stack_init ptr in
     here eputs " Overflow in stack_init\n" eputs
     1 exit
   end
-  len(stacks) @64 stacks +ptr swap !Stack.data
+  len(stacks) @64 STACK_CAP * stacks +ptr swap !Stack.data
   len(stacks) inc64
 end
 

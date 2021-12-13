@@ -59,6 +59,14 @@ end
 
 proc newline in "\n" puts end
 
+proc isupper int -- bool in
+  dup
+    'A' >=
+  swap
+    'Z' <=
+  land
+end
+
 // EXE
 
 proc exe_fork ptr ptr in // argv file

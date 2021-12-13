@@ -18,7 +18,7 @@ proc list_init ptr in
     here eputs " Overflow in list_init\n" eputs
     1 exit
   end
-  len(lists) @64 lists +ptr swap !List.data
+  len(lists) @64 LIST_CAP * lists +ptr swap !List.data
   len(lists) inc64
 end
 
