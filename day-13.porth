@@ -99,3 +99,7 @@ end
 fold
 //dump_data
 size print
+while len(input) 0 > do
+  fold
+end
+dump_data
