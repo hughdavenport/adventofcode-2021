@@ -1,4 +1,4 @@
-include "day-3-procs.porth"
+include "day-03-procs.porth"
 
 proc calculate_gamma_and_epsilon in
   reset_current_keep // Only used to count ones

@@ -1,4 +1,4 @@
-include "day-4-procs.porth"
+include "day-04-procs.porth"
 
 read_numbers
 while read_board do end

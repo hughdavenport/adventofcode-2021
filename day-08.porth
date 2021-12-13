@@ -1,4 +1,4 @@
-include "day-8-procs.porth"
+include "day-08-procs.porth"
 
 read_stdin_to_str dup @Str input !Str
 

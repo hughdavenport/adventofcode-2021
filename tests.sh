@@ -55,10 +55,10 @@ test_inputs() {
 
 PORTH="${HOME}/src/porth/porth"
 PORTH_PY="${HOME}/src/porth/porth.py"
-START=1
+START=01
 END=25
 [ -n "$1" ] && case $1 in ''|*[!0-9]*) ;; *) START=$1; END=$1; ;; esac
-for DAY in $(seq "${START}" "${END}"); do
+for DAY in $(seq -w "${START}" "${END}"); do
   PORTH_FILE="day-${DAY}.porth"
   [ ! -s "$PORTH_FILE" ] && {
     # Day not started
