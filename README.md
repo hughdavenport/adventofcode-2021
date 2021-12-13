@@ -3,5 +3,5 @@
 Working on [Advent of Code 2021](https://adventofcode.com/2021) in the [porth programming language](https://gitlab.com/tsoding/porth)
 
 ![](https://img.shields.io/badge/day%20📅-13-blue)
-![](https://img.shields.io/badge/stars%20⭐-24-yellow)
+![](https://img.shields.io/badge/stars%20⭐-25-yellow)
 ![](https://img.shields.io/badge/days%20completed-12-red)
