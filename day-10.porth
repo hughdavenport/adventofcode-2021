@@ -11,7 +11,7 @@ memory stack sizeof(Stack) end
 stack stack_init
 
 memory list sizeof(List) end
-list list_init
+sizeof(int) list list_init
 
 // ()  40  41      3 points, then 1 point
 // []  91  93     57 points, then 2 points

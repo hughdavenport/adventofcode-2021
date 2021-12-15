@@ -1,23 +1,28 @@
 const LIST_CAP 1000 end
 const offsetof(List.count) sizeof(u64) offset end
+const offsetof(List.data_size) sizeof(u64) offset end
 const offsetof(List.data) sizeof(ptr) offset end
 const sizeof(List) reset end
 
 proc List.count ptr -- ptr in offsetof(List.count) ptr+ end
+proc List.data_size ptr -- ptr in offsetof(List.data_size) ptr+ end
 proc List.data ptr -- ptr in offsetof(List.data) ptr+ end
 proc @List.count ptr -- int in List.count @64 end
+proc @List.data_size ptr -- int in List.data_size @64 end
 proc @List.data ptr -- ptr in List.data  @64 cast(ptr) end
 proc !List.count int ptr in List.count !64 end
+proc !List.data_size int ptr in List.data_size !64 end
 proc !List.data ptr ptr in List.data  !64 end
 
 memory lists sizeof(int) LIST_CAP * LIST_CAP * end
 memory len(lists) sizeof(u64) end
 
-proc list_init ptr in
+proc list_init int ptr in
   len(lists) @64 LIST_CAP = if
     here eputs " Overflow in list_init\n" eputs
     1 exit
   end
+  swap over !List.data_size
   len(lists) @64 LIST_CAP * lists +ptr swap !List.data
   len(lists) inc64
 end
@@ -26,12 +31,25 @@ proc list_empty? ptr -- bool in
   @List.count 0 =
 end
 
+proc list_data_for_idx int ptr -- ptr in
+  swap over @List.data_size * swap @List.data +ptr
+end
+
 proc list_set int int ptr in
   over over swap dup 0 < rot rot swap @List.count >= lor if
     here eputs " Index Out Of Bounts in list_set\n" eputs
     1 exit
   end
-  @List.data !a[i]
+  memory list sizeof(ptr) end
+  memory val sizeof(int) end
+  dup list !ptr
+  list_data_for_idx
+  swap val !64
+  0 while dup list @ptr @List.data_size < do // data_idx byte_idx
+    val @64 over 8 * shr 255 and // data_idx byte_idx val
+    rot swap over !8
+    1 swap +ptr swap 1 +
+  end drop drop
 end
 
 proc list_get int ptr -- int in
@@ -39,7 +57,16 @@ proc list_get int ptr -- int in
     here eputs " Index Out Of Bounts in list_get\n" eputs
     1 exit
   end
-  @List.data @a[i]
+  memory list sizeof(ptr) end
+  memory val sizeof(int) end
+  dup list !ptr
+  list_data_for_idx
+  0 val !64
+  0 while dup list @ptr @List.data_size < do // data_idx byte_idx
+    over @8 over 8 * shl val @64 or val !64
+    swap 1 swap +ptr swap 1 +
+  end drop drop
+  val @64
 end
 
 proc list_remove
@@ -124,4 +151,12 @@ proc list_sort ptr in
     end drop
     i dec64
   end
+end
+
+proc list_to_str ptr -- int ptr in
+  dup @List.data_size 1 != if
+    here eputs ": ERROR: Can't use list_to_str for lists of datasize != 1\n" eputs
+    1 exit
+  end
+  dup @List.count swap @List.data
 end

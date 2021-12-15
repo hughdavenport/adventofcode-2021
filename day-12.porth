@@ -52,7 +52,7 @@ proc find_cave int ptr -- ptr in
       land do
     dup Cave.name ?str-empty if // Cave doesn't exist, add a new one
       dup name @Str rot !Cave.name
-      dup Cave.neighbours list_init
+      sizeof(int) over Cave.neighbours list_init
       name @Str swap drop @8 isupper over !Cave.big
     else
       sizeof(Cave) ptr+

@@ -1,5 +1,6 @@
 #!/bin/sh
 FAIL=0
+FAILED=()
 SIMULATE=0
 
 # Colors for printing pass/fail
@@ -11,6 +12,7 @@ pass() {
 }
 fail() {
   FAIL=1
+  FAILED+=("${1}")
   echo "${RED}FAIL${RESET}"
 }
 
@@ -31,11 +33,11 @@ test_input() {
   if [ -s "${INPUT_FILE}" ]; then
     ${EXE} < "${INPUT_FILE}" | diff - "${OUTPUT_FILE}" > $DIFF_TMP
     [ $? -eq 0 ] && pass || {
-      fail
+      fail "${EXE} < ${INPUT_FILE}"
       cat $DIFF_TMP
     }
   else
-    fail
+    fail "${EXE} < ???"
     echo "No input file"
   fi
   rm $DIFF_TMP
@@ -76,8 +78,7 @@ for DAY in $(seq -w "${START}" "${END}"); do
       time test_inputs "${PORTH} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     }
   else
-    fail
-    echo "here"
+    fail "${PORTH} com -s \"$PORTH_FILE\""
   fi
   echo -n "Testing compiling ${PORTH_FILE} against porth.py: "
   ${PORTH_PY} com -s "$PORTH_FILE"
@@ -89,10 +90,13 @@ for DAY in $(seq -w "${START}" "${END}"); do
       time test_inputs "${PORTH_PY} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     }
   else
-    fail
+    fail "${PORTH_PY} com -s \"$PORTH_FILE\""
     echo "here"
   fi
 done
 echo -n "Overall: "
 [ $FAIL -eq 0 ] && pass || fail
+for I in `seq 0 ${#FAILED[@]}`; do
+  echo ${FAILED[$I]}
+done
 exit $FAIL

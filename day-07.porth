@@ -1,7 +1,7 @@
 include "helpers.porth"
 
 memory numbers sizeof(List) end
-numbers list_init
+sizeof(int) numbers list_init
 memory fuel sizeof(int) end
 
 proc numbers_min_max -- int int in

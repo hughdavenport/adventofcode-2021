@@ -1,7 +1,7 @@
 include "helpers.porth"
 
 memory list sizeof(List) end
-list list_init
+sizeof(int) list list_init
 "Empty list\n" puts
 list list_dump
 
@@ -31,7 +31,7 @@ list list_dump
 
 "New list\n" puts
 memory list2 sizeof(List) end
-list2 list_init list2 list_dump
+sizeof(char) list2 list_init list2 list_dump
 
 "Existing list\n" puts
 list list_dump
@@ -40,3 +40,6 @@ list list_dump
 list list_sort
 list list_dump
 
+'a' list2 list_add
+'b' list2 list_add
+list2 list_to_str puts

@@ -9,7 +9,7 @@ memory p sizeof(ptr) end
 memory bingos sizeof(bool) 100 * end // input has 100 boards in it
 memory result sizeof(int) end // Save scores to this, the last one will be the one there at the end
 boards p !ptr
-numbers list_init
+sizeof(int) numbers list_init
 
 
 memory input sizeof(Str) end

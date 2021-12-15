@@ -5,6 +5,8 @@ proc 2dup int int -- int int int int in over over end
 proc 2drop int int -- in drop drop end
 
 // STRINGS
+const sizeof(char) 1 end
+
 memory stdin_cstr 100000 end
 proc read_stdin_to_str -- ptr in
   memory ret sizeof(Str) end
