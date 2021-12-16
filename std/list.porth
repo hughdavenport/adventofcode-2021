@@ -123,7 +123,9 @@ end
 proc list_dump ptr in
   memory _l sizeof(ptr) end
   _l !ptr
-  "List: [" puts
+  "List: " puts
+//  "(" puts _l @ptr @List.data cast(int) putu ") " puts
+  "[" puts
   0 while dup _l @ptr @List.count < do // stk : idx
     dup 0 != if ", " puts end
     dup _l @ptr list_get putu

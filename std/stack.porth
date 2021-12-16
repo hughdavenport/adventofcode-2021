@@ -59,7 +59,9 @@ end
 proc stack_dump ptr in
   memory _s sizeof(ptr) end
   _s !ptr
-  "Stack: [" puts
+  "Stack: " puts
+//  "(" puts _s @ptr @Stack.data cast(int) putu ") " puts
+  "[" puts
   _s @ptr @Stack.count 1 - while dup 0 >= do
     dup _s @ptr @Stack.data @a[i] putu
     dup 0 != if ", " puts end
