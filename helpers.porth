@@ -193,3 +193,4 @@ end
 // My custom std
 include "std/stack.porth"
 include "std/list.porth"
+include "std/map.porth"

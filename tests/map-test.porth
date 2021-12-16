@@ -1,0 +1,17 @@
+include "helpers.porth"
+memory map sizeof(Map) end
+sizeof(int) map map_init
+map map_dump
+
+1 0 map map_set
+2 1 map map_set
+"Added 0->1 and 1->2\n" puts
+map map_dump
+5 0 map map_set
+"Changed 0->1 to 0->5\n" puts
+map map_dump
+"Getting value of key 0\n" puts
+0 map map_get print
+"Removing 1\n" puts
+1 map map_remove print
+map map_dump

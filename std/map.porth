@@ -1,0 +1,124 @@
+const MAP_CAP 1000 end
+const offsetof(Map.lhs) sizeof(ptr) offset end
+const offsetof(Map.rhs) sizeof(ptr) offset end
+const sizeof(Map) reset end
+
+proc Map.lhs ptr -- ptr in offsetof(Map.lhs) ptr+ end
+proc Map.rhs ptr -- ptr in offsetof(Map.rhs) ptr+ end
+proc @Map.lhs ptr -- ptr in Map.lhs @64 cast(ptr) end
+proc @Map.rhs ptr -- ptr in Map.rhs @64 cast(ptr) end
+proc !Map.lhs ptr ptr in Map.lhs !64 end
+proc !Map.rhs ptr ptr in Map.rhs !64 end
+
+proc @Map.count ptr -- int in @Map.lhs @List.count end
+
+memory maps sizeof(List) 2 * MAP_CAP * end
+memory len(maps) sizeof(u64) end
+
+proc map_init int ptr in
+  len(maps) @64 MAP_CAP = if
+    here eputs " Overflow in map_init\n" eputs
+    1 exit
+  end
+  dup len(maps) @64 MAP_CAP * maps +ptr swap !Map.lhs
+  dup len(maps) @64 MAP_CAP * sizeof(List) + maps +ptr swap !Map.rhs
+  len(maps) inc64
+
+  over over @Map.lhs list_init
+  @Map.rhs list_init
+end
+
+proc map_empty? ptr -- bool in
+  @Map.lhs list_empty?
+end
+
+proc map_set int int ptr in
+  memory map sizeof(ptr) end
+  map !ptr
+  memory key sizeof(int) end
+  key !64
+  memory val sizeof(int) end
+  val !64
+
+  false
+  0 while dup map @ptr @Map.count < do
+    dup map @ptr @Map.lhs list_get key @64 = if
+      val @64 over map @ptr @Map.rhs list_set
+      drop drop true map @ptr @Map.count // break
+    end
+    1 +
+  end drop
+  lnot if
+    key @64 map @ptr @Map.lhs list_add
+    val @64 map @ptr @Map.rhs list_add
+  end
+end
+
+proc map_get int ptr -- int in
+  memory map sizeof(ptr) end
+  map !ptr
+  memory key sizeof(int) end
+  key !64
+  memory val sizeof(int) end
+  0 val !64
+
+  0 while dup map @ptr @Map.count < do
+    dup map @ptr @Map.lhs list_get key @64 = if
+      dup map @ptr @Map.rhs list_get val !64
+      drop map @ptr @Map.count // break
+    end
+    1 +
+  end drop
+  val @64
+end
+
+proc map_remove
+  int ptr // key map
+  --
+  int     // ret
+    in
+  memory map sizeof(ptr) end
+  map !ptr
+  memory key sizeof(int) end
+  key !64
+  memory val sizeof(int) end
+  0 val !64
+
+  0 while dup map @ptr @Map.count < do
+    dup map @ptr @Map.lhs list_get key @64 = if
+      dup map @ptr @Map.lhs list_remove drop
+      dup map @ptr @Map.rhs list_remove val !64
+      drop map @ptr @Map.count // break
+    end
+    1 +
+  end drop
+  val @64
+end
+
+proc map_keys ptr -- ptr in
+  // UNSAFE, can change this and break the map
+  @Map.lhs
+end
+
+proc map_values ptr -- ptr in
+  // UNSAFE, can change this and break the map
+  @Map.rhs
+end
+
+proc map_dump ptr in
+  memory map sizeof(ptr) end
+  map !ptr
+//  "LHS: " puts map @ptr @Map.lhs list_dump
+//  "RHS: " puts map @ptr @Map.rhs list_dump
+  "Map: " puts
+//  "(L:" puts map @ptr @Map.lhs cast(int) putu ", R:" puts map @ptr @Map.rhs cast(int) putu ") " puts
+  "{" puts
+  0 while dup map @ptr @Map.count < do // stk : idx
+    dup 0 != if ", " puts end
+    dup map @ptr @Map.lhs list_get putu
+    ": " puts
+    dup map @ptr @Map.rhs list_get putu
+    1 +
+  end drop
+  "}\n" puts
+end
