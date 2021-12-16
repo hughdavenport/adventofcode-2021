@@ -16,6 +16,7 @@ memory rhs sizeof(List) end
 sizeof(char) rhs list_init
 memory counts sizeof(Map) end
 sizeof(int) counts map_init
+memory count_values sizeof(List) end
 
 read_stdin_to_str @Str input !Str
 line input str-chop-line
@@ -57,7 +58,7 @@ proc dump_counts in
     dup counts map_values list_get putu
     1 +
   end drop
-  newline
+  "}\n" puts
 end
 
 proc mapping_get int ptr -- int in // str -> char
@@ -80,7 +81,7 @@ end
 //dump_counts
 //"Template:     " puts list list_to_str puts newline
 
-0 while dup 10 < do
+0 while dup 40 < do
   list list_to_str swap drop // base_str of current pair
   0 while dup list @List.count 1 - < do // pair idx
     over 2 swap // pair idx 2 pair (pair as Str)
@@ -98,10 +99,21 @@ end
   end drop drop
   dup 5 < if
 //    "After step " puts dup 1 + putu ": " puts list list_to_str puts newline
+  else
+    "After step " puts dup putu " the length is " puts list @List.count print
   end
+  dump_counts
   1 +
+  dup 10 = if
+    count_values counts map_values list_copy
+    count_values list_sort
+    count_values @List.count 1 - count_values list_get 0 count_values list_get - print
+  end
 end
 //"After step " puts dup putu " the length is " puts list @List.count print
 drop
-//dump_counts
-counts map_values dup list_sort dup @List.count 1 - over list_get swap 0 swap list_get - print
+dump_counts
+"sorting\n" puts
+count_values counts map_values list_copy
+count_values list_sort
+count_values @List.count 1 - count_values list_get 0 count_values list_get - print

@@ -1,4 +1,4 @@
-const LIST_CAP 100000 end
+const LIST_CAP 500000 end
 const MAX_LISTS 50 end
 const offsetof(List.count) sizeof(u64) offset end
 const offsetof(List.data_size) sizeof(u64) offset end
@@ -118,6 +118,17 @@ proc list_add
   end // stk: list val list count
   swap List.count inc64
   rot list_set
+end
+
+proc list_copy ptr ptr in
+  memory src sizeof(ptr) end
+  memory dst sizeof(ptr) end
+  src !ptr dst !ptr
+  src @ptr @List.data_size dst @ptr list_init
+  0 while dup src @ptr @List.count < do
+    dup src @ptr list_get dst @ptr list_add
+    1 +
+  end drop
 end
 
 proc list_dump ptr in
