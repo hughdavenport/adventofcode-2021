@@ -1,0 +1,107 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+memory list sizeof(List) end
+sizeof(char) list list_init
+memory lhs sizeof(List) end
+sizeof(ptr) lhs list_init
+memory rhs sizeof(List) end
+sizeof(char) rhs list_init
+memory counts sizeof(Map) end
+sizeof(int) counts map_init
+
+read_stdin_to_str @Str input !Str
+line input str-chop-line
+while len(line) 0 > do
+  line @Str.data @8
+  dup list list_add
+  dup counts map_get 1 + swap counts map_set
+  line str-chop-one-left
+end
+
+line input str-chop-line // swallow blank line
+
+while len(input) 0 > do
+  line input str-chop-line
+  word line str-chop-word
+  word @Str.data cast(int) lhs list_add
+  word line str-chop-word // swallow the -> token
+  line @Str.data @8 rhs list_add
+end
+
+proc dump_mapping in
+  0 while dup lhs @List.count < do
+    dup lhs list_get cast(ptr) 2 swap puts
+    " -> " puts
+    dup rhs @List.data +ptr 1 swap puts
+    newline
+    1 +
+  end drop
+end
+
+proc dump_counts in
+  memory c sizeof(char) end
+  "Counts: {" puts
+  0 while dup counts @Map.count < do
+    dup 0 != if ", " puts end
+    dup counts map_keys list_get c !8 1 c puts
+    " (" puts c @8 putu ")" puts
+    ": " puts
+    dup counts map_values list_get putu
+    1 +
+  end drop
+  newline
+end
+
+proc mapping_get int ptr -- int in // str -> char
+  memory search sizeof(Str) end
+  search !Str
+  0 // ret
+  0 while dup lhs @List.count < do
+    dup lhs list_get cast(ptr) 2 swap
+    search @Str streq if
+      swap drop dup rhs @List.data +ptr @8 swap
+      drop lhs @List.count // break
+    end
+    1 +
+  end drop
+end
+
+
+
+//dump_mapping
+//dump_counts
+//"Template:     " puts list list_to_str puts newline
+
+0 while dup 10 < do
+  list list_to_str swap drop // base_str of current pair
+  0 while dup list @List.count 1 - < do // pair idx
+    over 2 swap // pair idx 2 pair (pair as Str)
+    mapping_get // pair idx char
+    dup 0 = if
+      "ERROR, couldn't find mapping\n" eputs
+      drop dup print over 2 swap puts newline
+      1 exit
+    else
+      dup counts map_get 1 + over counts map_set
+      over 1 + list list_insert
+      swap 1 swap +ptr swap 1 +
+    end
+    swap 1 swap +ptr swap 1 +
+  end drop drop
+  dup 5 < if
+//    "After step " puts dup 1 + putu ": " puts list list_to_str puts newline
+  end
+  1 +
+end
+//"After step " puts dup putu " the length is " puts list @List.count print
+drop
+//dump_counts
+counts map_values dup list_sort dup @List.count 1 - over list_get swap 0 swap list_get - print
