@@ -1,4 +1,5 @@
-const LIST_CAP 1000 end
+const LIST_CAP 100000 end
+const MAX_LISTS 50 end
 const offsetof(List.count) sizeof(u64) offset end
 const offsetof(List.data_size) sizeof(u64) offset end
 const offsetof(List.data) sizeof(ptr) offset end
@@ -14,11 +15,11 @@ proc !List.count int ptr in List.count !64 end
 proc !List.data_size int ptr in List.data_size !64 end
 proc !List.data ptr ptr in List.data  !64 end
 
-memory lists sizeof(int) LIST_CAP * LIST_CAP * end
+memory lists sizeof(int) LIST_CAP * MAX_LISTS * end
 memory len(lists) sizeof(u64) end
 
 proc list_init int ptr in
-  len(lists) @64 LIST_CAP = if
+  len(lists) @64 MAX_LISTS = if
     here eputs " Overflow in list_init\n" eputs
     1 exit
   end
