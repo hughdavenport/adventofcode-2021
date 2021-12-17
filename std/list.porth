@@ -174,3 +174,17 @@ proc list_to_str ptr -- int ptr in
   end
   dup @List.count swap @List.data
 end
+
+proc list_contains int ptr -- bool in
+  memory list sizeof(ptr) end
+  list !ptr
+  memory val sizeof(int) end
+  val !64
+  false
+  0 while dup list @ptr @List.count < do
+    dup list @ptr list_get val @64 = if
+      drop drop true list @ptr @List.count
+    end
+    1 +
+  end drop
+end

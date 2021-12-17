@@ -137,6 +137,16 @@ proc font_bold in
   argvp @ptr argvp exe_fork
 end
 
+proc font_red in
+  memory argvp sizeof(ptr) 5 * end
+  "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr
+  font_tput_term_arg argvp 1 8 * ptr+ !ptr
+  "setaf"c argvp 2 8 * ptr+ !ptr
+  "160"c argvp 3 8 * ptr+ !ptr
+  NULL argvp 4 8 * ptr+ !ptr
+  argvp @ptr argvp exe_fork
+end
+
 proc font_reset in
   memory argvp sizeof(ptr) 4 * end
   "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr

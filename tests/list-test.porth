@@ -43,3 +43,8 @@ list list_dump
 'a' list2 list_add
 'b' list2 list_add
 list2 list_to_str puts
+"\n" puts
+
+"list contains, 'a' and 'c'\n" puts
+'a' list2 list_contains print
+'c' list2 list_contains print

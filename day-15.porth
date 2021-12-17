@@ -1,0 +1,171 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+const N 100 end
+memory data sizeof(int) N * N * end
+memory width sizeof(int) end
+memory height sizeof(int) end
+
+read_stdin_to_str @Str input !Str
+0 // y
+while len(input) 0 > do
+  line input str-chop-line
+  0 // x
+  while len(line) 0 > do
+    2dup swap width @64 * + sizeof(int) * data +ptr
+    line @Str.data @8 '0' - swap !64
+    line str-chop-one-left
+    1 +
+  end width !64
+  1 +
+end height !64
+
+proc idx int int -- int in // y x
+  swap width @64 * +
+end
+
+proc y_x int -- int int in
+  width @64 divmod
+end
+
+proc @data int -- int in sizeof(int) * data +ptr @64 end
+
+proc dump_data in
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup idx @data putu
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+end
+
+memory f sizeof(int) N * N * end
+memory g sizeof(int) N * N * end
+proc h int -- int in
+  y_x width @64 swap - swap height @64 swap - +
+end
+memory q sizeof(List) end
+sizeof(int) q list_init
+
+proc @f int -- int in sizeof(int) * f +ptr @64 end
+proc !f int int in sizeof(int) * f +ptr !64 end
+proc @g int -- int in sizeof(int) * g +ptr @64 end
+proc !g int int in sizeof(int) * g +ptr !64 end
+
+proc heapify in
+  // take q, check in f for priority
+  // basic way is to search through q, find min and put it at 0...
+  memory min sizeof(int) end
+  memory mini sizeof(int) end
+  0 mini !64
+  mini @64 q list_get @f min !64
+  1 while dup q @List.count < do
+    dup q list_get @f min @64 < if
+      dup mini !64
+      mini @64 q list_get @f min !64
+    end
+    1 +
+  end drop
+  mini @64 0 != if
+    mini @64 q list_get
+    0 q list_get mini @64 q list_set
+    0 q list_set
+  end
+end
+
+proc dump_f in
+  "F vals\n" puts
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup idx dup @f
+      swap dup q list_contains if
+        0 q list_get = if
+          font_red
+        else
+          font_reset
+        end
+        font_bold
+      else
+        drop font_reset
+      end
+      putu " " puts
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+end
+
+proc dump_g in
+  "G vals\n" puts
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup idx @g putu " " puts
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+end
+
+memory current sizeof(int) end
+proc do_neighbour int in
+//  dup y_x "Testing (" puts putu ", " puts putu ")\n" puts
+  dup @data current @64 @g + // y x idx_n tentative
+//  dup "tentative is " puts print
+//  over @g "g[neighbour] is " puts print
+  2dup swap @g < if // y x idx_n tentative
+    2dup swap !g
+    over h + over !f // y x idx_n
+    dup q list_contains lnot if
+      dup q list_add heapify
+    end
+    drop // y x
+  else 2drop // y x
+  end
+end
+proc solve in
+//  dump_data
+  0 current !64
+  0 current @64 !g
+  1 while dup N N * < do 10 N * N * over !g 1 + end drop
+  current @64 h current @64 !f
+  // make a q, with top left (0) in it
+  current @64 q list_add heapify
+  while q @List.count 0 > do
+//    q list_dump
+//    dump_f
+//    dump_g
+    0 q list_get current !64
+    current @64 width @64 height @64 * 1 - = if
+      // Got there!
+//      "Got a solution\n" puts
+      current @64 @g print
+      0 q !List.count // break
+    else
+      q @List.count 1 > if
+        q @List.count 1 - q list_remove 0 q list_set heapify // swap with last elem and heapify
+      else
+        0 q list_remove drop
+      end
+      current @64 y_x // y x
+//      2dup "Current is (" puts putu ", " puts putu ")\n" puts
+      dup width @64 1 - < if 2dup 1 + idx do_neighbour end
+      dup 0 > if 2dup 1 - idx do_neighbour end
+      over height @64 1 - < if 2dup swap 1 + swap idx do_neighbour end
+      over 0 > if 2dup swap 1 - swap idx do_neighbour end
+      2drop
+    end
+  end
+end
+
+solve
