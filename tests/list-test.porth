@@ -48,3 +48,10 @@ list2 list_to_str puts
 "list contains, 'a' and 'c'\n" puts
 'a' list2 list_contains print
 'c' list2 list_contains print
+
+"list remove 0\n" puts
+list list_dump
+0 list list_remove print
+list list_dump
+0 list list_remove print
+list list_dump

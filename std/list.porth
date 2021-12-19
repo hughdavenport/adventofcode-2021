@@ -81,12 +81,19 @@ proc list_remove
     here eputs " Underflow in list_remove\n" eputs
     1 exit
   end
-  dup _l @ptr list_get swap // stk: ret idx
-  while dup _l @ptr @List.count 1 - < do
-    dup 1 + _l @ptr list_get over _l @ptr list_set
-    1 +
-  end drop
-  _l @ptr List.count dec64
+  dup 0 = if
+    dup _l @ptr list_get swap
+    1 _l @ptr list_data_for_idx _l @ptr !List.data
+    _l @ptr List.count dec64
+    drop
+  else
+    dup _l @ptr list_get swap // stk: ret idx
+    while dup _l @ptr @List.count 1 - < do
+      dup 1 + _l @ptr list_get over _l @ptr list_set
+      1 +
+    end drop
+    _l @ptr List.count dec64
+  end
 end
 
 proc list_insert
