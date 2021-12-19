@@ -67,14 +67,14 @@ proc heapify in
   // take q, check in f for priority
   // basic way is to search through q, find min and put it at 0...
   // FIXME: make this more efficient by actually making it a heap
-  memory min sizeof(int) end
+  memory mi sizeof(int) end
   memory mini sizeof(int) end
   0 mini !64
-  mini @64 q list_get @f min !64
+  mini @64 q list_get @f mi !64
   1 while dup q @List.count < do
-    dup q list_get @f min @64 < if
+    dup q list_get @f mi @64 < if
       dup mini !64
-      mini @64 q list_get @f min !64
+      mini @64 q list_get @f mi !64
     end
     1 +
   end drop
