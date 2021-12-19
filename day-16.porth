@@ -6,8 +6,6 @@ memory bits sizeof(List) end
 sizeof(int) bits list_init
 memory bits_read sizeof(int) end
 0 bits_read !64
-memory read_block sizeof(bool) end
-false read_block !bool
 
 proc dump_bits in
   "Read so far: " puts bits_read @64 putu ", " puts
@@ -16,29 +14,26 @@ proc dump_bits in
 end
 
 proc parse_nibble in
-  read_block @bool lnot if
-    input @Str.data @8
-    input str-chop-one-left
-    dup isdigit if
-      '0' -
-    else dup isalpha if*
-      'A' - 10 +
-    else drop 0
-    end
-    0 while dup 4 < do 0 bits list_add 1 + end drop
-    0 while dup 4 < do
-      swap 2 divmod rot swap over bits @List.count 1 - swap - bits list_set
-      1 +
-    end drop
-    drop
+  input @Str.data @8
+  input str-chop-one-left
+  dup isdigit if
+    '0' -
+  else dup isalpha if*
+    'A' - 10 +
+  else drop 0
   end
+  0 while dup 4 < do 0 bits list_add 1 + end drop
+  0 while dup 4 < do
+    swap 2 divmod rot swap over bits @List.count 1 - swap - bits list_set
+    1 +
+  end drop
+  drop
 end
 
 proc read_bits int -- int in
   dup bits_read @64 + bits_read !64
   while bits @List.count over <=
-      input @Str.count 0 > land
-      read_block @bool lnot land do
+      input @Str.count 0 > land do
     parse_nibble
   end
   0
@@ -72,52 +67,79 @@ proc print_indent in
 end
 memory version_sum sizeof(int) end
 0 version_sum !64
-proc read_packet in
+proc read_packet -- int in
   memory version sizeof(int) end
   memory type sizeof(int) end
   3 read_bits version !64
   version @64 version_sum @64 + version_sum !64
-//  print_indent "Version: " puts version @64 print
   3 read_bits type !64
+//  print_indent "Version: " puts version @64 print
+//  print_indent "Type: " puts type @64 print
   type @64 4 = if
-//    print_indent "Literal: " puts
     read_literal
-//    dup print
-    drop
+//    print_indent "Literal: " puts dup print
   else
+    memory first sizeof(bool) end
+    0
+    true first !bool
     1 read_bits
 //    print_indent "Operator type: " puts dup print
     0 = if
       15 read_bits
 //      print_indent dup "Subpackets in " puts putu " bits\n" puts
-      bits @List.count
-      while over 0 > do
-        parse_nibble
-        swap 4 - swap
-      end swap -
-      true read_block !bool
-      while dup bits @List.count < do
+      bits_read @64 +
+      while dup bits_read @64 > do // bits @List.count < do
         indent inc64
         read_packet
+        first @bool if
+          rot drop swap
+          false first !bool
+        else
+          rot
+               type @64 0 = if   +
+          else type @64 1 = if*  *
+          else type @64 2 = if*  min
+          else type @64 3 = if*  max
+          else type @64 5 = if*  < cast(int)
+          else type @64 6 = if*  > cast(int)
+          else type @64 7 = if*  = cast(int)
+          else "UNREACHABLE\n" puts drop end
+          swap
+        end
         indent dec64
       end drop
-      false read_block !bool
 //      print_indent "Finished subpackets\n" puts
     else
       11 read_bits
       while dup 0 > do
         indent inc64
         read_packet
+        first @bool if
+          rot drop swap
+          false first !bool
+        else
+          rot
+               type @64 0 = if   +
+          else type @64 1 = if*  *
+          else type @64 2 = if*  min
+          else type @64 3 = if*  max
+          else type @64 5 = if*  < cast(int)
+          else type @64 6 = if*  > cast(int)
+          else type @64 7 = if*  = cast(int)
+          else "UNREACHABLE\n" puts drop end
+          swap
+        end
         indent dec64
         1 -
       end drop
+//      print_indent "Finished subpackets\n" puts
     end
+//    print_indent "Operator: " puts dup print
   end
 end
 
 read_stdin_to_str @Str input !Str
-while len(input) 0 > do
-  read_packet
-end
+read_packet
 // dump_bits
 version_sum @64 print
+print
