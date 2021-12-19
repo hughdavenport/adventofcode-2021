@@ -57,32 +57,65 @@ proc h int -- int in
 end
 memory q sizeof(List) end
 sizeof(int) q list_init
+memory in_q sizeof(bool) N * N * end
+proc @in_q int -- bool in sizeof(bool) * in_q +ptr @bool end
+proc !in_q bool int in sizeof(bool) * in_q +ptr !bool end
 
 proc @f int -- int in sizeof(int) * f +ptr @64 end
 proc !f int int in sizeof(int) * f +ptr !64 end
 proc @g int -- int in sizeof(int) * g +ptr @64 end
 proc !g int int in sizeof(int) * g +ptr !64 end
 
-proc heapify in
-  // take q, check in f for priority
-  // basic way is to search through q, find min and put it at 0...
-  // FIXME: make this more efficient by actually making it a heap
-  memory mi sizeof(int) end
-  memory mini sizeof(int) end
-  0 mini !64
-  mini @64 q list_get @f mi !64
-  1 while dup q @List.count < do
-    dup q list_get @f mi @64 < if
-      dup mini !64
-      mini @64 q list_get @f mi !64
+proc dump_heap in
+
+end
+
+proc _heapify int in // idx
+  dup dup q list_get @f
+  // i s s_f
+  over 2 * 1 +
+  // i s s_f l
+  dup q @List.count < if
+    2dup q list_get @f swap 2dup < if
+      drop rot drop rot drop
+    else
+      2drop drop
     end
-    1 +
-  end drop
-  mini @64 0 != if
-    mini @64 q list_get
-    0 q list_get mini @64 q list_set
-    0 q list_set
+  else
+    drop
   end
+  // i s s_f
+  rot rot swap rot
+  // s i s_f
+  over 2 * 2 +
+  // s i s_f r
+  dup q @List.count < if
+    2dup q list_get @f swap 2dup < if
+      drop rot drop drop rot drop
+    else
+      2drop 2drop swap
+    end
+  else
+    2drop swap
+  end
+  // i s
+
+  2dup != if
+    // s s_v i
+    dup q list_get swap
+    rot swap over q list_get over q list_set
+    rot rot q list_set
+drop //    _heapify
+  else
+    2drop
+  end
+end
+
+proc heapify in
+  q @List.count 2 / 1 - while dup 0 >= do
+    dup _heapify
+    1 -
+  end drop
 end
 
 proc dump_f in
@@ -90,7 +123,7 @@ proc dump_f in
   0 while dup height @64 < do
     0 while dup width @64 < do
       2dup idx dup @f
-      swap dup q list_contains if
+      swap dup @in_q if
         0 q list_get = if
           font_red
         else
@@ -129,8 +162,9 @@ proc do_neighbour int in
   2dup swap @g < if // y x idx_n tentative
     2dup swap !g
     over h + over !f // y x idx_n
-    dup q list_contains lnot if
+    dup @in_q lnot if
       dup q list_add heapify
+      dup true swap !in_q
     end
     drop // y x
   else 2drop // y x
@@ -143,14 +177,17 @@ proc solve in
   0 current @64 !g
   1 while dup N N * < do 10 N * N * over !g 1 + end drop
   0 while dup N N * < do 0 over !f 1 + end drop
+  0 while dup N N * < do false over !in_q 1 + end drop
   current @64 h current @64 !f
   // make a q, with top left (0) in it
   current @64 q list_add heapify
+  true current @64 !in_q
   while q @List.count 0 > do
 //    q list_dump
 //    dump_f
 //    dump_g
     0 q list_get current !64
+//    current @64 dup "Current idx: " puts putu ", f val: " puts @f putu newline
     current @64 width @64 height @64 * 1 - = if
       // Got there!
 //      "Got a solution\n" puts
@@ -163,6 +200,7 @@ proc solve in
       else
         0 q list_remove drop
       end
+      false current @64 !in_q
       current @64 y_x // y x
 //      2dup "Current is (" puts putu ", " puts putu ")\n" puts
       dup width @64 1 - < if 2dup 1 + idx do_neighbour end

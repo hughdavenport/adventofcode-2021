@@ -45,12 +45,16 @@ proc list_set int int ptr in
   memory val sizeof(int) end
   dup list !ptr
   list_data_for_idx
-  swap val !64
-  0 while dup list @ptr @List.data_size < do // data_idx byte_idx
-    val @64 over 8 * shr 255 and // data_idx byte_idx val
-    rot swap over !8
-    1 swap +ptr swap 1 +
-  end drop drop
+  list @ptr @List.data_size sizeof(int) = if
+    !64
+  else
+    swap val !64
+    0 while dup list @ptr @List.data_size < do // data_idx byte_idx
+      val @64 over 8 * shr 255 and // data_idx byte_idx val
+      rot swap over !8
+      1 swap +ptr swap 1 +
+    end drop drop
+  end
 end
 
 proc list_get int ptr -- int in
@@ -62,12 +66,16 @@ proc list_get int ptr -- int in
   memory val sizeof(int) end
   dup list !ptr
   list_data_for_idx
-  0 val !64
-  0 while dup list @ptr @List.data_size < do // data_idx byte_idx
-    over @8 over 8 * shl val @64 or val !64
-    swap 1 swap +ptr swap 1 +
-  end drop drop
-  val @64
+  list @ptr @List.data_size sizeof(int) = if
+    @64
+  else
+    0 val !64
+    0 while dup list @ptr @List.data_size < do // data_idx byte_idx
+      over @8 over 8 * shl val @64 or val !64
+      swap 1 swap +ptr swap 1 +
+    end drop drop
+    val @64
+  end
 end
 
 proc list_remove
