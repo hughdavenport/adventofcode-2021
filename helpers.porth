@@ -6,6 +6,7 @@ proc 2drop int int -- in drop drop end
 
 // STRINGS
 const sizeof(char) 1 end
+proc !char int ptr in !8 end
 
 memory stdin_cstr 100000 end
 proc read_stdin_to_str -- ptr in
@@ -67,6 +68,12 @@ proc isupper int -- bool in
   swap
     'Z' <=
   land
+end
+
+proc putc int in
+  memory c sizeof(char) end
+  c !char
+  1 c puts
 end
 
 // EXE
