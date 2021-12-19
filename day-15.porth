@@ -8,7 +8,7 @@ proc len(line) -- int in line @Str.count end
 memory word sizeof(Str) end
 proc @word -- int ptr in word @Str end
 proc len(word) -- int in word @Str.count end
-const N 100 end
+const N 2500 end
 memory data sizeof(int) N * N * end
 memory width sizeof(int) end
 memory height sizeof(int) end
@@ -36,8 +36,10 @@ proc y_x int -- int int in
 end
 
 proc @data int -- int in sizeof(int) * data +ptr @64 end
+proc !data int int in sizeof(int) * data +ptr !64 end
 
 proc dump_data in
+  "DATA:\n" puts
   0 while dup height @64 < do
     0 while dup width @64 < do
       2dup idx @data putu
@@ -64,6 +66,7 @@ proc !g int int in sizeof(int) * g +ptr !64 end
 proc heapify in
   // take q, check in f for priority
   // basic way is to search through q, find min and put it at 0...
+  // FIXME: make this more efficient by actually making it a heap
   memory min sizeof(int) end
   memory mini sizeof(int) end
   0 mini !64
@@ -134,10 +137,12 @@ proc do_neighbour int in
   end
 end
 proc solve in
+  memory solved sizeof(bool) end
 //  dump_data
   0 current !64
   0 current @64 !g
   1 while dup N N * < do 10 N * N * over !g 1 + end drop
+  0 while dup N N * < do 0 over !f 1 + end drop
   current @64 h current @64 !f
   // make a q, with top left (0) in it
   current @64 q list_add heapify
@@ -150,6 +155,7 @@ proc solve in
       // Got there!
 //      "Got a solution\n" puts
       current @64 @g print
+      true solved !bool
       0 q !List.count // break
     else
       q @List.count 1 > if
@@ -166,6 +172,60 @@ proc solve in
       2drop
     end
   end
+  solved @bool lnot if "Couldn't find solution\n" puts end
 end
+
+proc extend_map in
+  memory add sizeof(int) end
+//  dump_data
+  // shift existing data to be in top left corner
+  height @64 1 - while dup 0 > do
+    // add 4 * width * y to each index
+    dup width @64 * 4 * add !64
+    0 while dup width @64 < do
+      2dup idx dup add @64 + swap @data swap !data
+      2dup idx 0 swap !data
+      1 +
+    end drop
+    1 -
+  end drop
+  width @64 5 * width !64
+//  dump_data
+  width @64 5 / width !64
+  // extend rows
+  0 while dup height @64 5 * < do
+    0 while dup width @64 < do
+      2dup idx dup @data // y x idx @data
+      0 while dup 4 < do // y x idx @data i
+        // y x idx+width @data+1 i
+        rot width @64 + rot 1 + dup 10 = if drop 1 end 2dup swap !data rot
+        1 +
+      end drop drop drop
+      1 +
+    end drop
+    5 +
+  end drop
+  // set width to 5 * width
+  width @64 5 * width !64
+//  dump_data
+  // extend colums
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup idx dup @data // y x idx @data
+      0 while dup 4 < do // y x idx @data i
+        rot width @64 height @64 * + rot 1 + dup 10 = if drop 1 end 2dup swap !data rot
+        1 +
+      end drop drop drop
+      1 +
+    end drop
+    1 +
+  end drop
+  height @64 5 * height !64
+//  dump_data
+end
+
+solve
+
+extend_map
 
 solve
