@@ -91,7 +91,6 @@ for DAY in $(seq -w "${START}" "${END}"); do
     }
   else
     fail "${PORTH_PY} com -s \"$PORTH_FILE\""
-    echo "here"
   fi
 done
 echo -n "Overall: "

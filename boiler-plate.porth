@@ -9,17 +9,26 @@ memory word sizeof(Str) end
 proc @word -- int ptr in word @Str end
 proc len(word) -- int in word @Str.count end
 
-read_stdin_to_str @Str input !Str
-while len(input) 0 > do
-  line input str-chop-line
-//  "line |" puts @line puts "|\n" puts
-  while len(line) 0 > do
-    word line str-chop-word
-    @word try-parse-int if
-//      dup "int |" puts putu "|\n" puts
-    else
-//      dup "str |" puts putu "|" puts @word puts "|\n" puts
+proc parse_input in
+  read_stdin_to_str @Str input !Str
+  while len(input) 0 > do
+    "ignoretext" drop input str-chop-n-left
+    input @Str.data @8 putc // read cur character
+    input str-chop-one-left // move to next char
+    line input str-chop-line // skip til next line, save skipped line into line var
+//    @line puts
+    while len(line) 0 > do
+      word line str-chop-word // skip til next space delim word, save skipped word into word var
+      @word try-parse-int if
+//        dup "int |" puts putu "|\n" puts
+      else
+//        dup "str |" puts putu "|" puts @word puts "|\n" puts
+      end
+      drop
+      ':' word input str-chop-by-delim // skip til after the next ':', save skipped stuff into word var
     end
-    drop
   end
 end
+
+
+parse_input

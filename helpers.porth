@@ -4,6 +4,8 @@ include "std.porth"
 proc 2dup int int -- int int int int in over over end
 proc 2drop int int -- in drop drop end
 
+proc dec64-by ptr int in over @64 - swap !64 end
+
 // STRINGS
 const sizeof(char) 1 end
 proc !char int ptr in !8 end
@@ -60,7 +62,24 @@ proc str-len-diff ptr ptr -- int in // stk: a b -> len
   end
 end
 
+proc str-chop-n-left int ptr in
+ while over 0 > do dup str-chop-one-left swap 1 - swap end drop drop
+end
+
 proc newline in "\n" puts end
+
+proc signum int -- int in dup 0 < if 0 1 - else dup 0 > if* 1 else 0 end swap drop end
+
+proc putd int in
+  dup 0 < if "-" puts end
+  dup signum * putu
+end
+
+proc try-parse-signed-int int ptr -- int bool in
+  dup @8 '-' = if swap 1 - swap 1 swap +ptr 0 1 - else 1 end rot rot
+  try-parse-int
+  swap rot * swap
+end
 
 proc isupper int -- bool in
   dup

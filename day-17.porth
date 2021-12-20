@@ -1,0 +1,85 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc @input -- int ptr in input @Str end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+
+memory t_x1 sizeof(int) end
+memory t_x2 sizeof(int) end
+memory t_y1 sizeof(int) end
+memory t_y2 sizeof(int) end
+
+memory x sizeof(int) end
+memory y sizeof(int) end
+memory v_x sizeof(int) end
+memory v_y sizeof(int) end
+
+memory highest sizeof(int) end
+
+proc on_target? -- bool in
+  x @64 t_x1 @64 >= x @64 t_x2 @64 <= land
+  y @64 t_y1 @64 >= y @64 t_y2 @64 <= land
+  land
+end
+
+proc missed_target? -- bool in
+  x @64 t_x1 @64 < v_x @64 0 <= land
+  x @64 t_x2 @64 > v_x @64 0 >= land
+  lor
+  y @64 t_y1 @64 < lor
+end
+
+proc finished? -- bool in on_target? missed_target? lor end
+
+proc dump_info in
+  "x=" puts x @64 putd ",y=" puts y @64 putd ",v_x=" puts v_x @64 putd ",v_y=" puts v_y @64 putd newline
+  "    target area: x=" puts t_x1 @64 putd ".." puts t_x2 @64 putd ", y=" puts t_y1 @64 putd ".." puts t_y2 @64 putd newline
+  "    On target currently? " puts on_target? if "Yes" else "No" end puts newline
+  "    Missed target? " puts missed_target? if "Yes" else "No" end puts newline
+end
+
+proc parse_input in
+  read_stdin_to_str @Str input !Str
+  "target area: x=" drop input str-chop-n-left
+  '.' word input str-chop-by-delim
+  @word try-parse-signed-int drop t_x1 !64
+  "." drop input str-chop-n-left
+  ',' word input str-chop-by-delim
+  @word try-parse-signed-int drop t_x2 !64
+  " y=" drop input str-chop-n-left
+  '.' word input str-chop-by-delim
+  @word try-parse-signed-int drop t_y1 !64
+  "." drop input str-chop-n-left
+  word input str-chop-line
+  @word try-parse-signed-int drop t_y2 !64
+end
+
+proc hits_target? int int -- bool in
+  v_y !64 v_x !64
+  0 x !64 0 y !64
+  0 highest !64
+  while finished? lnot do
+//    dump_info
+    y @64 highest @64 max highest !64
+    v_x @64 x swap inc64-by
+    v_y @64 y swap inc64-by
+    v_x @64 dup signum - v_x !64
+    v_y @64 1 - v_y !64
+  end
+//  dump_info
+  on_target?
+end
+
+
+parse_input
+
+0
+0 while dup 500 < do
+  0 while dup 500 < do
+    2dup hits_target? if rot highest @64 max rot rot end
+    1 +
+  end drop
+  1 +
+end drop
+print
