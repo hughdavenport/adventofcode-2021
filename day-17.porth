@@ -74,12 +74,14 @@ end
 
 parse_input
 
+memory acc sizeof(int) end
 0
-0 while dup 500 < do
-  0 while dup 500 < do
-    2dup hits_target? if rot highest @64 max rot rot end
+0 500 - while dup 500 < do
+  0 500 - while dup 500 < do
+    2dup hits_target? if acc inc64 rot highest @64 max rot rot end
     1 +
   end drop
   1 +
 end drop
 print
+acc @64 print
