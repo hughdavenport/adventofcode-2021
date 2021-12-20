@@ -32,7 +32,7 @@ proc Pair.right_val ptr -- ptr in offsetof(Pair.right_val) ptr+ end
 proc @Pair.right_val ptr -- int in Pair.right_val @64 end
 proc !Pair.right_val int ptr in Pair.right_val !64 end
 
-const MAX_PAIRS 100 end
+const MAX_PAIRS 1000 end
 memory pairs sizeof(Pair) MAX_PAIRS * end
 sizeof(Pair) MAX_PAIRS * 0 pairs memset drop
 memory len(pairs) sizeof(int) end
@@ -57,6 +57,32 @@ proc new_pair -- ptr in
   ret @ptr
 end
 
+proc copy_pair ptr -- ptr in
+  new_pair
+  over @Pair.left_ptr NULL ptr!= if
+    over @Pair.left_ptr copy_pair over !Pair.left_ptr
+  else
+    over @Pair.left_val over !Pair.left_val
+  end
+  over @Pair.right_ptr NULL ptr!= if
+    over @Pair.right_ptr copy_pair over !Pair.right_ptr
+  else
+    over @Pair.right_val over !Pair.right_val
+  end
+  swap drop
+end
+
+proc free_pair ptr in
+  dup @Pair.left_ptr NULL ptr!= if
+    dup @Pair.left_ptr free_pair
+    NULL over !Pair.left_ptr
+  end
+  dup @Pair.right_ptr NULL ptr!= if
+    dup @Pair.right_ptr free_pair
+    NULL over !Pair.right_ptr
+  end
+  true swap !Pair.to_free
+end
 
 proc dump_pair ptr in
   "[" puts
@@ -259,12 +285,18 @@ proc magnitude ptr -- int in
   drop +
 end
 
-proc parse_input in
+memory starting_pairs 128 sizeof(ptr) * end
+memory len(starting_pairs) sizeof(int) end
+proc @starting_pairs[i] int -- ptr in sizeof(ptr) * starting_pairs swap ptr+ @ptr end
+proc !starting_pairs[i] ptr int in sizeof(ptr) * starting_pairs swap ptr+ !ptr end
+proc parse_input -- ptr in
   read_stdin_to_str @Str input !Str
   NULL while len(input) 0 > do
     line input str-chop-line
     line str-chop-one-left
     parse_pair
+    dup copy_pair len(starting_pairs) @64 !starting_pairs[i]
+    len(starting_pairs) inc64
     over NULL ptr= if
 //      "  " puts dup dump_pair newline
       swap drop
@@ -277,8 +309,29 @@ proc parse_input in
 //      "  " puts dup dump_pair newline
     end
   end
-  magnitude print
 end
 
 
 parse_input
+dup magnitude print
+free_pair
+
+memory part2 sizeof(int) end
+0 while dup len(starting_pairs) @64 < do
+  0 while dup len(starting_pairs) @64 < do
+    2dup != if
+      over @starting_pairs[i] copy_pair over @starting_pairs[i] copy_pair
+//      "  " puts over dump_pair newline
+//      "+ " puts dup dump_pair newline
+      add_pair dup reduce
+//      "= " puts dup dump_pair newline
+      dup magnitude
+//      dup print
+      part2 @64 max part2 !64
+      free_pair
+    end
+    1 +
+  end drop
+  1 +
+end drop
+part2 @64 print
