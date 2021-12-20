@@ -1,0 +1,284 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+const offsetof(Pair.to_free) sizeof(bool) offset end
+const offsetof(Pair.left_ptr) sizeof(ptr) offset end
+const offsetof(Pair.left_val) sizeof(int) offset end
+const offsetof(Pair.right_ptr) sizeof(ptr) offset end
+const offsetof(Pair.right_val) sizeof(int) offset end
+const sizeof(Pair) reset end
+
+proc Pair.to_free ptr -- ptr in offsetof(Pair.to_free) ptr+ end
+proc @Pair.to_free ptr -- bool in Pair.to_free @64 cast(bool) end
+proc !Pair.to_free bool ptr in Pair.to_free !64 end
+proc Pair.left_ptr ptr -- ptr in offsetof(Pair.left_ptr) ptr+ end
+proc @Pair.left_ptr ptr -- ptr in Pair.left_ptr @64 cast(ptr) end
+proc !Pair.left_ptr ptr ptr in Pair.left_ptr !64 end
+proc Pair.left_val ptr -- ptr in offsetof(Pair.left_val) ptr+ end
+proc @Pair.left_val ptr -- int in Pair.left_val @64 end
+proc !Pair.left_val int ptr in Pair.left_val !64 end
+proc Pair.right_ptr ptr -- ptr in offsetof(Pair.right_ptr) ptr+ end
+proc @Pair.right_ptr ptr -- ptr in Pair.right_ptr @64 cast(ptr) end
+proc !Pair.right_ptr ptr ptr in Pair.right_ptr !64 end
+proc Pair.right_val ptr -- ptr in offsetof(Pair.right_val) ptr+ end
+proc @Pair.right_val ptr -- int in Pair.right_val @64 end
+proc !Pair.right_val int ptr in Pair.right_val !64 end
+
+const MAX_PAIRS 100 end
+memory pairs sizeof(Pair) MAX_PAIRS * end
+sizeof(Pair) MAX_PAIRS * 0 pairs memset drop
+memory len(pairs) sizeof(int) end
+proc pairs[i] int -- ptr in sizeof(Pair) * pairs swap ptr+ end
+
+proc new_pair -- ptr in
+  memory ret sizeof(ptr) end
+  NULL ret !ptr
+  0 while dup len(pairs) @64 < do
+    dup pairs[i] @Pair.to_free if
+      dup pairs[i] false swap !Pair.to_free
+      dup pairs[i] ret !ptr
+      drop len(pairs) @64 // break
+    end
+    1 +
+  end drop
+  ret @ptr NULL ptr= if
+    len(pairs) @64 MAX_PAIRS = if "Overflow in new_pair\n" puts 1 exit end
+    len(pairs) @64 pairs[i] ret !ptr
+    len(pairs) inc64
+  end
+  ret @ptr
+end
+
+
+proc dump_pair ptr in
+  "[" puts
+  dup @Pair.left_ptr NULL ptr!= if
+    dup @Pair.left_ptr dump_pair
+  else
+    dup @Pair.left_val putu
+  end
+  "," puts
+  dup @Pair.right_ptr NULL ptr!= if
+    dup @Pair.right_ptr dump_pair
+  else
+    dup @Pair.right_val putu
+  end
+  "]" puts
+  drop
+end
+
+memory indent sizeof(int) end
+0 1 - indent !64
+proc print_indent in 0 while dup indent @64 < do "  " puts 1 + end drop end
+
+proc parse_pair -- ptr in
+  indent inc64
+  new_pair
+
+// print_indent  line @Str puts newline
+  line @Str.data @8
+// print_indent "First char is " puts dup putc newline
+  dup '[' = if
+    line str-chop-one-left over parse_pair swap !Pair.left_ptr
+  else
+    ',' word line str-chop-by-delim
+    over @word try-parse-int drop swap !Pair.left_val
+  end drop
+  line @Str.data @8
+// print_indent "Second char is " puts dup putc newline
+  dup '[' = if
+    line str-chop-one-left over parse_pair swap !Pair.right_ptr
+  else
+    ']' word line str-chop-by-delim
+    over @word try-parse-int drop swap !Pair.right_val
+  end drop
+  line str-chop-one-left
+// print_indent  dup dump_pair newline
+  indent dec64
+end
+
+proc add_pair ptr ptr -- ptr in
+  new_pair
+  swap over !Pair.right_ptr
+  swap over !Pair.left_ptr
+end
+
+memory last_val_ptr sizeof(ptr) end
+memory next_val_to_set sizeof(ptr) end
+proc explode int ptr -- bool in
+  indent inc64
+// print_indent  "explode: Visiting pair: " puts dup dump_pair newline
+  over 4 = next_val_to_set @ptr NULL ptr= land if
+// print_indent    "In exploded pair\n" puts
+// print_indent    dup dump_pair newline
+    last_val_ptr @ptr NULL ptr!= if dup @Pair.left_val last_val_ptr @ptr swap inc64-by end
+    NULL last_val_ptr !ptr
+    dup true swap !Pair.to_free
+    Pair.right_val next_val_to_set !ptr
+    drop
+    true
+  else
+    dup @Pair.left_ptr NULL ptr!= if
+      over 1 + over @Pair.left_ptr explode
+      if
+        dup @Pair.left_ptr Pair.right_val next_val_to_set @ptr ptr= if
+// print_indent          "In pair above exploded left\n" puts
+// print_indent          dup dump_pair newline
+          NULL over !Pair.left_ptr
+          0 over !Pair.left_val
+// print_indent          dup dump_pair newline
+        end
+        true
+      else
+        false
+      end
+    else
+      next_val_to_set @ptr NULL ptr!= if
+// print_indent        "Found next right most val in left\n" puts
+// print_indent        dup dump_pair newline
+        next_val_to_set @ptr @64 over Pair.left_val swap inc64-by
+        NULL next_val_to_set !ptr
+        true
+      else
+        dup Pair.left_val last_val_ptr !ptr
+        false
+      end
+    end
+    over @Pair.right_ptr NULL ptr!= if
+      dup lnot next_val_to_set @ptr NULL ptr!= lor if
+        rot rot
+        over 1 + over @Pair.right_ptr explode
+        if
+          dup @Pair.right_ptr Pair.right_val next_val_to_set @ptr ptr= if
+// print_indent            "In pair above exploded right\n" puts
+// print_indent            dup dump_pair newline
+            NULL over !Pair.right_ptr
+            0 over !Pair.right_val
+// print_indent            dup dump_pair newline
+          end
+          drop drop drop true
+        else
+          drop drop
+        end
+      else
+        rot rot drop drop
+      end
+    else
+      next_val_to_set @ptr NULL ptr!= if
+        drop
+// print_indent        "Found next right most val in right\n" puts
+// print_indent        dup dump_pair newline
+        next_val_to_set @ptr @64 over Pair.right_val swap inc64-by
+        NULL next_val_to_set !ptr
+        drop drop
+        true
+      else
+        rot rot
+        dup Pair.right_val last_val_ptr !ptr
+        drop drop
+      end
+    end
+  end
+// print_indent "explode: Returning: " puts dup if "true" else "false" end puts newline
+  indent dec64
+end
+
+proc split ptr -- bool in
+  indent inc64
+// print_indent  "split: Visiting pair: " puts dup dump_pair newline
+  dup @Pair.left_ptr NULL ptr= if
+    dup @Pair.left_val 10 >= if
+// print_indent "split: got left val: " puts dup dump_pair newline
+      new_pair
+      over over swap !Pair.left_ptr
+      over @Pair.left_val 2 over 1 + 2 / rot rot / rot swap over !Pair.left_val !Pair.right_val
+      true
+    else
+      false
+    end
+  else
+   dup @Pair.left_ptr split
+  end
+  dup lnot if
+    drop
+    dup @Pair.right_ptr NULL ptr= if
+      dup @Pair.right_val 10 >= if
+// print_indent "split: got right val: " puts dup dump_pair newline
+        new_pair
+        over over swap !Pair.right_ptr
+        over @Pair.right_val 2 over 1 + 2 / rot rot / rot swap over !Pair.left_val !Pair.right_val
+        true
+      else
+        false
+      end
+    else
+      dup @Pair.right_ptr split
+    end
+  end
+// print_indent "split: Returning: " puts dup if "true" else "false" end puts newline
+// print_indent over dump_pair newline
+  swap drop
+  indent dec64
+end
+
+proc reduce ptr in
+  true while dup do
+//    "Reducing: " puts over dump_pair " - " puts
+    NULL next_val_to_set !ptr NULL last_val_ptr !ptr
+    drop dup 0 swap explode dup lnot if
+      drop
+      // do splits
+      dup split
+//      dup if "Split\n" puts else "FIN\n" puts end
+//    else "Exploded\n" puts
+    end
+  end drop drop
+end
+
+proc magnitude ptr -- int in
+  dup @Pair.left_ptr NULL ptr!= if
+    dup @Pair.left_ptr magnitude
+  else
+    dup @Pair.left_val
+  end
+  3 * swap
+  dup @Pair.right_ptr NULL ptr!= if
+    dup @Pair.right_ptr magnitude
+  else
+    dup @Pair.right_val
+  end
+  2 * swap
+  drop +
+end
+
+proc parse_input in
+  read_stdin_to_str @Str input !Str
+  NULL while len(input) 0 > do
+    line input str-chop-line
+    line str-chop-one-left
+    parse_pair
+    over NULL ptr= if
+//      "  " puts dup dump_pair newline
+      swap drop
+    else
+//      "+ " puts dup dump_pair newline
+      add_pair
+      dup reduce
+//      "= " puts dup dump_pair newline
+//      newline
+//      "  " puts dup dump_pair newline
+    end
+  end
+  magnitude print
+end
+
+
+parse_input
