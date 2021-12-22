@@ -17,6 +17,7 @@ proc image -- ptr in images current_image @64 sizeof(List) * ptr+ end
 proc next_image -- ptr in images current_image @64 1 + 2 % sizeof(List) * ptr+ end
 proc switch_images in current_image @64 1 + 2 % current_image !64 end
 sizeof(ptr) image list_init
+sizeof(ptr) next_image list_init
 proc i[x][y] int int ptr -- int in // y x i
   rot swap list_get cast(ptr) list_get
 end
@@ -32,9 +33,22 @@ proc new_row -- ptr in
     "Overflow in new_row\n" puts
     1 exit
   end
-  len(rows) @64 sizeof(List) * rows swap ptr+
-  len(rows) inc64
-  sizeof(char) over list_init
+  memory ret sizeof(ptr) end
+  NULL ret !ptr
+  0 while dup len(rows) @64 < ret @ptr NULL ptr= land do
+    dup sizeof(List) * rows swap ptr+ dup @List.freed 1 = if
+      dup 0 swap !List.freed
+      dup 0 swap !List.count
+      dup ret !ptr
+    end drop
+    1 +
+  end drop
+  ret @ptr dup NULL ptr= if
+    drop
+    len(rows) @64 sizeof(List) * rows swap ptr+
+    len(rows) inc64
+    sizeof(char) over list_init
+  end
 end
 
 proc dump_image in
@@ -145,7 +159,6 @@ end
 
 proc build_next_image in
   memory row sizeof(ptr) end
-  sizeof(ptr) next_image list_init
   1 while dup image @List.count 1 - < do
     new_row row !ptr
     row @ptr cast(int) next_image list_add
@@ -161,9 +174,18 @@ proc build_next_image in
   @8 out !8
 end
 
+proc free_image in
+  0 while dup image @List.count < do
+    dup image list_get cast(ptr) 1 swap !List.freed
+    1 +
+  end drop
+  0 image !List.count
+end
+
 proc simulate in
   extend_image
   build_next_image
+  free_image
   switch_images
 end
 

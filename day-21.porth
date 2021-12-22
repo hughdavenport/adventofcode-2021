@@ -25,6 +25,49 @@ memory current_player sizeof(int) end
 proc player -- ptr in players current_player @64 sizeof(Player) * ptr+ end
 proc switch_players in current_player @64 1 + 2 % current_player !64 end
 
+memory starting_game sizeof(ptr) end
+const offsetof(Game.players) sizeof(Player) 2 * offset end
+const offsetof(Game.multiplier) sizeof(int) offset end
+const offsetof(Game.current_player) 1 offset end
+const offsetof(Game.freed) 1 offset end
+const sizeof(Game) reset end
+
+proc Game.players ptr -- ptr in offsetof(Game.players) ptr+ end
+proc Game.current_player ptr -- ptr in offsetof(Game.current_player) ptr+ end
+proc Game.multiplier ptr -- ptr in offsetof(Game.multiplier) ptr+ end
+proc Game.freed ptr -- ptr in offsetof(Game.freed) ptr+ end
+proc Game.player ptr -- ptr in dup Game.players over Game.current_player @8 sizeof(Player) * ptr+ swap drop end
+proc Game.switch_players ptr in dup Game.current_player @8 1 + 2 % swap Game.current_player !8 end
+
+const MAX_GAMES 1233693952 sizeof(Game) divmod drop end
+memory games sizeof(Game) MAX_GAMES * end
+memory len(games) sizeof(int) end
+0 len(games) !64
+
+proc new_game -- ptr in
+  memory ret sizeof(ptr) end
+  NULL ret !ptr
+  0 while dup len(games) @64 < ret @ptr NULL ptr= land do
+    dup sizeof(Game) * games swap ptr+ dup Game.freed @8 1 = if
+      dup ret !ptr
+    end drop
+    1 +
+  end drop
+  ret @ptr dup NULL ptr= if
+    len(games) @64 MAX_GAMES = if
+      "Overflow in new_game\n" puts
+      1 exit
+    end
+    drop len(games) @64 sizeof(Game) * games swap ptr+
+    len(games) inc64
+  end
+end
+
+proc copy_game ptr -- ptr in
+  new_game sizeof(Game) rot rot memcpy
+end
+
+
 proc parse_input in
   read_stdin_to_str @Str input !Str
   line input str-chop-line
@@ -37,6 +80,10 @@ proc parse_input in
   @line try-parse-int drop player !Player.loc
   2 player !Player.id
   switch_players
+  new_game
+  dup Game.multiplier 1 swap !64
+  sizeof(Player) 2 * over Game.players players swap memcpy drop
+  starting_game !ptr
 end
 
 memory dice_rolls sizeof(int) end
@@ -68,6 +115,17 @@ proc dump_game in
   newline
 end
 
+proc dump_quantum_game ptr in
+  "QUANTUM GAME DUMP\n" puts
+  "Multiplier: " puts dup Game.multiplier @64 print
+  "Current player: " puts dup Game.player dump_player
+  dup Game.switch_players
+  "Opponent: " puts dup Game.player dump_player
+  Game.switch_players
+  newline
+end
+
+
 proc take_turn -- bool in
   player @Player.loc roll_die roll_die roll_die + + + 1 - 10 % 1 + player !Player.loc
   player Player.score player @Player.loc inc64-by
@@ -80,6 +138,67 @@ proc solve -- int in
   player @Player.score dice_rolls @64 *
 end
 
+proc player= ptr ptr -- bool in
+  over @Player.loc over @Player.loc = rot rot @Player.score swap @Player.score = land
+end
+
+proc game= ptr ptr -- bool in
+  over Game.players over Game.players over over player= rot rot sizeof(Player) ptr+ swap sizeof(Player) ptr+ player= land
+  rot rot Game.current_player @8 swap Game.current_player @8 = land
+end
+
+memory current_games sizeof(List) end
+sizeof(ptr) current_games list_init
+memory next_current_games sizeof(List) end
+memory wins sizeof(int) 2 * end
+proc roll_dice_quantum int int ptr in // multiplier diceroll*3 game
+  rot over Game.multiplier @64 * over Game.multiplier !64
+  swap over Game.player @Player.loc + 1 - 10 % 1 + over Game.player !Player.loc
+  dup Game.player Player.score over Game.player @Player.loc inc64-by
+  dup Game.player @Player.score 21 >= if
+    wins over Game.current_player @8 sizeof(int) * ptr+ over Game.multiplier @64 inc64-by
+    1 over Game.freed !8
+  else
+    dup Game.switch_players
+    false swap
+    0 while dup next_current_games @List.count < do
+      over over next_current_games list_get cast(ptr) game= if
+        over over next_current_games list_get cast(ptr) Game.multiplier swap Game.multiplier @64 inc64-by
+        over 1 swap Game.freed !8
+        drop swap drop true swap next_current_games @List.count
+      end
+      1 +
+    end drop
+    swap lnot if
+      dup cast(int) next_current_games list_add
+    end
+  end drop
+end
+
+proc take_turn_quantum ptr in
+  dup copy_game 3 4 rot roll_dice_quantum
+  dup copy_game 6 5 rot roll_dice_quantum
+  dup copy_game 7 6 rot roll_dice_quantum
+  dup copy_game 6 7 rot roll_dice_quantum
+  dup copy_game 3 8 rot roll_dice_quantum
+  dup copy_game 1 9 rot roll_dice_quantum
+  1 3 rot roll_dice_quantum
+end
+
+proc solve_quantum -- int in
+  starting_game @ptr cast(int) current_games list_add
+  while current_games @List.count 0 > do
+    sizeof(ptr) next_current_games list_init
+    0 while dup current_games @List.count < do
+      dup current_games list_get cast(ptr) take_turn_quantum
+      1 +
+    end drop
+    sizeof(List) next_current_games current_games memcpy drop
+  end
+  wins @64 wins sizeof(int) ptr+ @64 max
+end
+
 
 parse_input
 solve print
+solve_quantum print

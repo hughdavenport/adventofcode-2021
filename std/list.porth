@@ -1,19 +1,23 @@
-const LIST_CAP 10000 end
-const MAX_LISTS 10000 end
+const LIST_CAP 100000 end
+const MAX_LISTS 500 end
 const offsetof(List.count) sizeof(u64) offset end
 const offsetof(List.data_size) sizeof(u64) offset end
 const offsetof(List.data) sizeof(ptr) offset end
+const offsetof(List.freed) 1 offset end
 const sizeof(List) reset end
 
 proc List.count ptr -- ptr in offsetof(List.count) ptr+ end
 proc List.data_size ptr -- ptr in offsetof(List.data_size) ptr+ end
 proc List.data ptr -- ptr in offsetof(List.data) ptr+ end
+proc List.freed ptr -- ptr in offsetof(List.freed) ptr+ end
 proc @List.count ptr -- int in List.count @64 end
 proc @List.data_size ptr -- int in List.data_size @64 end
 proc @List.data ptr -- ptr in List.data  @64 cast(ptr) end
+proc @List.freed ptr -- int in List.freed  @8 end
 proc !List.count int ptr in List.count !64 end
 proc !List.data_size int ptr in List.data_size !64 end
 proc !List.data ptr ptr in List.data  !64 end
+proc !List.freed int ptr in List.freed  !8 end
 
 memory lists sizeof(int) LIST_CAP * MAX_LISTS * end
 memory len(lists) sizeof(u64) end
