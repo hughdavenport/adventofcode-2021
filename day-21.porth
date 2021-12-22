@@ -1,0 +1,85 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+
+const offsetof(Player.id) sizeof(int) offset end
+const offsetof(Player.score) sizeof(int) offset end
+const offsetof(Player.loc) sizeof(int) offset end
+const sizeof(Player) reset end
+
+proc Player.id ptr -- ptr in offsetof(Player.id) ptr+ end
+proc Player.score ptr -- ptr in offsetof(Player.score) ptr+ end
+proc Player.loc ptr -- ptr in offsetof(Player.loc) ptr+ end
+proc @Player.id ptr -- int in Player.id @64 end
+proc @Player.score ptr -- int in Player.score @64 end
+proc @Player.loc ptr -- int in Player.loc @64 end
+proc !Player.id int ptr in Player.id !64 end
+proc !Player.score int ptr in Player.score !64 end
+proc !Player.loc int ptr in Player.loc !64 end
+
+memory players sizeof(Player) 2 * end
+memory current_player sizeof(int) end
+0 current_player !64
+proc player -- ptr in players current_player @64 sizeof(Player) * ptr+ end
+proc switch_players in current_player @64 1 + 2 % current_player !64 end
+
+proc parse_input in
+  read_stdin_to_str @Str input !Str
+  line input str-chop-line
+  "Player 1 starting position: " drop line str-chop-n-left
+  @line try-parse-int drop player !Player.loc
+  1 player !Player.id
+  switch_players
+  line input str-chop-line
+  "Player 2 starting position: " drop line str-chop-n-left
+  @line try-parse-int drop player !Player.loc
+  2 player !Player.id
+  switch_players
+end
+
+memory dice_rolls sizeof(int) end
+memory last_roll sizeof(int) end
+proc roll_die -- int in
+  last_roll @64 0 = if
+    1
+  else
+    last_roll @64 100 % 1 +
+  end
+  dup last_roll !64
+  dice_rolls inc64
+end
+
+proc dump_player ptr in
+  "id: " puts dup @Player.id putu ", loc: " puts dup @Player.loc putu ", score: " puts dup @Player.score putu
+  newline
+  drop
+end
+
+proc dump_game in
+  "GAME DUMP\n" puts
+  "Dice rolls: " puts dice_rolls @64 print
+  "Last roll: " puts last_roll @64 print
+  "Current player: " puts player dump_player
+  switch_players
+  "Opponent: " puts player dump_player
+  switch_players
+  newline
+end
+
+proc take_turn -- bool in
+  player @Player.loc roll_die roll_die roll_die + + + 1 - 10 % 1 + player !Player.loc
+  player Player.score player @Player.loc inc64-by
+  player @Player.score 1000 >=
+  switch_players
+end
+
+proc solve -- int in
+  while take_turn lnot do end
+  player @Player.score dice_rolls @64 *
+end
+
+
+parse_input
+solve print
