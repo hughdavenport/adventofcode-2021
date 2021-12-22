@@ -1,5 +1,5 @@
 const LIST_CAP 500000 end
-const MAX_LISTS 50 end
+const MAX_LISTS 500 end
 const offsetof(List.count) sizeof(u64) offset end
 const offsetof(List.data_size) sizeof(u64) offset end
 const offsetof(List.data) sizeof(ptr) offset end

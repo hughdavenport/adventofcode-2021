@@ -1,0 +1,192 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+memory enhancement sizeof(Str) end
+memory images sizeof(List) 2 * end
+memory current_image sizeof(int) end
+0 current_image !64
+proc image -- ptr in images current_image @64 sizeof(List) * ptr+ end
+proc next_image -- ptr in images current_image @64 1 + 2 % sizeof(List) * ptr+ end
+proc switch_images in current_image @64 1 + 2 % current_image !64 end
+sizeof(ptr) image list_init
+proc i[x][y] int int ptr -- int in // y x i
+  rot swap list_get cast(ptr) list_get
+end
+proc image[x][y] int int -- int in image i[x][y] end
+memory out sizeof(char) end
+
+const MAX_ROWS 10000 end
+memory rows sizeof(List) MAX_ROWS * end
+memory len(rows) sizeof(int) end
+0 len(rows) !64
+proc new_row -- ptr in
+  len(rows) @64 MAX_ROWS = if
+    "Overflow in new_row\n" puts
+    1 exit
+  end
+  len(rows) @64 sizeof(List) * rows swap ptr+
+  len(rows) inc64
+  sizeof(char) over list_init
+end
+
+proc dump_image in
+  "Image:\n" puts
+  0 while dup image @List.count < do
+    dup image list_get cast(ptr) list_to_str puts newline
+    1 +
+  end drop
+  newline
+end
+
+proc dump_next_image in
+  "Next Image:\n" puts
+  0 while dup next_image @List.count < do
+    dup next_image list_get cast(ptr) list_to_str puts newline
+    1 +
+  end drop
+  newline
+end
+
+proc dump_image_with_selection int int in
+  memory x sizeof(int) end
+  memory y sizeof(int) end
+  x !64 y !64
+  "Image:\n" puts
+  0 while dup image @List.count < do
+    0 while dup image @List.count < do
+           over y @64 1 - = over x @64 1 - = land if  font_bold font_red
+      else over y @64 1 - = over x @64 0 + = land if* font_bold font_red
+      else over y @64 1 - = over x @64 1 + = land if* font_bold font_red
+      else over y @64 0 + = over x @64 1 - = land if* font_bold font_red
+      else over y @64 0 + = over x @64 0 + = land if* font_bold font_red
+      else over y @64 0 + = over x @64 1 + = land if* font_bold font_red
+      else over y @64 1 + = over x @64 1 - = land if* font_bold font_red
+      else over y @64 1 + = over x @64 0 + = land if* font_bold font_red
+      else over y @64 1 + = over x @64 1 + = land if* font_bold font_red
+      else font_reset end
+      2dup image[x][y] putc
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+  newline
+  font_reset
+end
+
+proc parse_input in
+  memory row sizeof(ptr) end
+  read_stdin_to_str @Str input !Str
+  enhancement input str-chop-line
+  line input str-chop-line // swallow a line
+  while len(input) 0 > do
+    line input str-chop-line
+    new_row row !ptr
+    while len(line) 0 > do
+      line @Str.data @8 row @ptr list_add
+      line str-chop-one-left
+    end
+    row @ptr cast(int) image list_add
+  end
+  '.' out !8
+end
+
+proc extend_image in
+  out @8
+  0 while dup image @List.count < do
+    dup image list_get cast(ptr) rot
+    over over swap list_add
+    over over swap list_add
+    over over 0 rot list_insert
+    over over 0 rot list_insert
+    rot rot drop
+    1 +
+  end drop
+  new_row
+  0 while dup image @List.count 4 + < do
+    rot rot over over list_add rot
+    1 +
+  end drop
+  cast(int)
+  0 while dup 2 < do over 0 image list_insert over image list_add 1 + end drop
+  drop drop
+end
+
+proc val int -- int in '.' = if 0 else 1 end end
+
+proc idx int int -- int in
+  memory x sizeof(int) end
+  memory y sizeof(int) end
+  x !64 y !64
+  memory digits 9 end
+  y @64 1 - x @64 1 - image[x][y] val digits 0 ptr+ !8
+  y @64 1 - x @64 0 + image[x][y] val digits 1 ptr+ !8
+  y @64 1 - x @64 1 + image[x][y] val digits 2 ptr+ !8
+  y @64 0 + x @64 1 - image[x][y] val digits 3 ptr+ !8
+  y @64 0 + x @64 0 + image[x][y] val digits 4 ptr+ !8
+  y @64 0 + x @64 1 + image[x][y] val digits 5 ptr+ !8
+  y @64 1 + x @64 1 - image[x][y] val digits 6 ptr+ !8
+  y @64 1 + x @64 0 + image[x][y] val digits 7 ptr+ !8
+  y @64 1 + x @64 1 + image[x][y] val digits 8 ptr+ !8
+  0
+  0 while dup 9 < do
+    swap 2 * over digits swap ptr+ @8 + swap
+    1 +
+  end drop
+end
+
+proc build_next_image in
+  memory row sizeof(ptr) end
+  sizeof(ptr) next_image list_init
+  1 while dup image @List.count 1 - < do
+    new_row row !ptr
+    row @ptr cast(int) next_image list_add
+    1 while dup image @List.count 1 - < do
+      2dup idx
+      enhancement @Str.data swap ptr+ @8 row @ptr list_add
+      1 +
+    end drop
+    1 +
+  end drop
+  enhancement @Str.data
+  out @8 val 1 = if 511 ptr+ end // 511 is (2^9)-1, 0b111111111
+  @8 out !8
+end
+
+proc simulate in
+  extend_image
+  build_next_image
+  switch_images
+end
+
+proc count_image -- int in
+  memory ret sizeof(int) end
+  0 ret !64
+  0 while dup image @List.count < do
+    0 while dup image @List.count < do
+      2dup image[x][y] val ret swap inc64-by
+      1 +
+    end drop
+    1 +
+  end drop
+  ret @64
+end
+
+proc solve -- int in
+  0 while dup 2 < do
+    simulate
+    1 +
+  end drop
+  count_image
+end
+
+parse_input
+solve print
