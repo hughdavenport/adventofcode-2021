@@ -180,13 +180,14 @@ proc count_image -- int in
   ret @64
 end
 
-proc solve -- int in
-  0 while dup 2 < do
-    simulate
-    1 +
-  end drop
-  count_image
-end
-
 parse_input
-solve print
+0 while dup 2 < do
+  simulate
+  1 +
+end
+count_image print
+while dup 50 < do
+  simulate
+  1 +
+end drop
+count_image print
