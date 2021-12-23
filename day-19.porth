@@ -15,7 +15,7 @@ const offsetof(Beacon.orig_z) sizeof(int) offset end
 const offsetof(Beacon.x) sizeof(int) offset end
 const offsetof(Beacon.y) sizeof(int) offset end
 const offsetof(Beacon.z) sizeof(int) offset end
-const offsetof(Beacon.overlaps) sizeof(bool) offset end
+const offsetof(Beacon.overlaps) sizeof(int) offset end
 const sizeof(Beacon) reset end
 
 proc Beacon.orig_x ptr -- ptr in offsetof(Beacon.orig_x) ptr+ end
@@ -31,14 +31,14 @@ proc @Beacon.orig_z ptr -- int in Beacon.orig_z @64 end
 proc @Beacon.x ptr -- int in Beacon.x @64 end
 proc @Beacon.y ptr -- int in Beacon.y @64 end
 proc @Beacon.z ptr -- int in Beacon.z @64 end
-proc @Beacon.overlaps ptr -- bool in Beacon.overlaps @bool end
+proc @Beacon.overlaps ptr -- int in Beacon.overlaps @int end
 proc !Beacon.orig_x int ptr in Beacon.orig_x !64 end
 proc !Beacon.orig_y int ptr in Beacon.orig_y !64 end
 proc !Beacon.orig_z int ptr in Beacon.orig_z !64 end
 proc !Beacon.x int ptr in Beacon.x !64 end
 proc !Beacon.y int ptr in Beacon.y !64 end
 proc !Beacon.z int ptr in Beacon.z !64 end
-proc !Beacon.overlaps bool ptr in Beacon.overlaps !bool end
+proc !Beacon.overlaps int ptr in Beacon.overlaps !int end
 
 const MAX_BEACONS 1000 end
 memory beacons sizeof(Beacon) MAX_BEACONS * end
@@ -65,7 +65,7 @@ proc dump_beacon ptr in
   dup dup @Beacon.x swap @Beacon.orig_x != over dup @Beacon.y swap @Beacon.orig_y != lor over dup @Beacon.z swap @Beacon.orig_z != lor if
     " - was (" puts dup @Beacon.orig_x putd "," puts dup @Beacon.orig_y putd "," puts dup @Beacon.orig_z putd ")" puts
   end
-  dup @Beacon.overlaps if " - OVERLAPS" puts end newline
+  dup @Beacon.overlaps 0 > if " - OVERLAPS " puts dup @Beacon.overlaps 1 - putu end newline
   drop
 end
 
@@ -124,7 +124,7 @@ proc dump_scanner ptr in
   "  rot: " puts dup @Scanner.rot putd newline
   "  beacons:\n" puts
   0 while over over swap Scanner.beacons @List.count < do
-    "    " puts over over swap Scanner.beacons list_get cast(ptr) dump_beacon
+    "    " puts dup putu " - " puts over over swap Scanner.beacons list_get cast(ptr) dump_beacon
     1 +
   end drop
   drop
@@ -171,26 +171,33 @@ proc rotate int ptr in // rotidx scanner
   s !ptr
   dup s @ptr !Scanner.rot
   // rotate idx will be divmod by 4, div will get shuffling of vars, mod will give which is -ve
-  4 divmod negatives !64 shuffles !64
+  // FIXME: should only need 4, see fixme's below
+  8 divmod negatives !64 shuffles !64
+//   x  y  z
        shuffles @64 1 = if
+//   x  z  y
     s @ptr @Scanner.y s @ptr @Scanner.z
     s @ptr !Scanner.y
     s @ptr !Scanner.z
   else shuffles @64 2 = if*
+//   y  x  z
     s @ptr @Scanner.x s @ptr @Scanner.y
     s @ptr !Scanner.x
     s @ptr !Scanner.y
   else shuffles @64 3 = if*
+//   y  z  x
     s @ptr @Scanner.x s @ptr @Scanner.z s @ptr @Scanner.y
     s @ptr !Scanner.x
     s @ptr !Scanner.y
     s @ptr !Scanner.z
   else shuffles @64 4 = if*
+//   z  y  x
     s @ptr @Scanner.x s @ptr @Scanner.z
     s @ptr !Scanner.x
     s @ptr !Scanner.z
   else shuffles @64 5 = if*
-    s @ptr @Scanner.z s @ptr @Scanner.x s @ptr @Scanner.y
+//   z  x  y
+    s @ptr @Scanner.y s @ptr @Scanner.x s @ptr @Scanner.z
     s @ptr !Scanner.x
     s @ptr !Scanner.y
     s @ptr !Scanner.z
@@ -201,34 +208,48 @@ proc rotate int ptr in // rotidx scanner
     s @ptr @Scanner.y 0 1 - * s @ptr !Scanner.y
   else negatives @64 3 = if*
     s @ptr @Scanner.z 0 1 - * s @ptr !Scanner.z
+// FIXME: Should only need 4, but we only flip one axis, the example input requires 2 to be flipped
+  else negatives @64 4 = if*
+    s @ptr @Scanner.x 0 1 - * s @ptr !Scanner.x
+    s @ptr @Scanner.y 0 1 - * s @ptr !Scanner.y
+  else negatives @64 5 = if*
+    s @ptr @Scanner.x 0 1 - * s @ptr !Scanner.x
+    s @ptr @Scanner.z 0 1 - * s @ptr !Scanner.z
+  else negatives @64 6 = if*
+    s @ptr @Scanner.y 0 1 - * s @ptr !Scanner.y
+    s @ptr @Scanner.z 0 1 - * s @ptr !Scanner.z
+  else negatives @64 7 = if*
+    s @ptr @Scanner.x 0 1 - * s @ptr !Scanner.x
+    s @ptr @Scanner.y 0 1 - * s @ptr !Scanner.y
+    s @ptr @Scanner.z 0 1 - * s @ptr !Scanner.z
   end
   0 while dup s @ptr Scanner.beacons @List.count < do
     dup s @ptr Scanner.beacons list_get cast(ptr) b !ptr
 //   x  y  z
-//   x  z  y
-//   y  x  z
-//   y  z  x
-//   z  y  x
-//   z  x  y
          shuffles @64 1 = if
+//   x  z  y
       b @ptr @Beacon.y b @ptr @Beacon.z
       b @ptr !Beacon.y
       b @ptr !Beacon.z
     else shuffles @64 2 = if*
+//   y  x  z
       b @ptr @Beacon.x b @ptr @Beacon.y
       b @ptr !Beacon.x
       b @ptr !Beacon.y
     else shuffles @64 3 = if*
+//   y  z  x
       b @ptr @Beacon.x b @ptr @Beacon.z b @ptr @Beacon.y
       b @ptr !Beacon.x
       b @ptr !Beacon.y
       b @ptr !Beacon.z
     else shuffles @64 4 = if*
+//   z  y  x
       b @ptr @Beacon.x b @ptr @Beacon.z
       b @ptr !Beacon.x
       b @ptr !Beacon.z
     else shuffles @64 5 = if*
-      b @ptr @Beacon.z b @ptr @Beacon.x b @ptr @Beacon.y
+//   z  x  y
+      b @ptr @Beacon.y b @ptr @Beacon.x b @ptr @Beacon.z
       b @ptr !Beacon.x
       b @ptr !Beacon.y
       b @ptr !Beacon.z
@@ -237,11 +258,31 @@ proc rotate int ptr in // rotidx scanner
   //  -x  y  z
   //   x -y  z
   //   x  y -z
+  // FIXME: Should only need 4, but we only flip one axis, the example input requires 2 to be flipped
+  // will just add to this, extra computation maybe, revisit later
+  //  -x -y  z
+  //  -x  y -z
+  //   x -y -z
+  //  -x -y -z
          negatives @64 1 = if
       b @ptr @Beacon.x 0 1 - * b @ptr !Beacon.x
     else negatives @64 2 = if*
       b @ptr @Beacon.y 0 1 - * b @ptr !Beacon.y
     else negatives @64 3 = if*
+      b @ptr @Beacon.z 0 1 - * b @ptr !Beacon.z
+  // FIXME: Should only need 4, but we only flip one axis, the example input requires 2 to be flipped
+    else negatives @64 4 = if*
+      b @ptr @Beacon.x 0 1 - * b @ptr !Beacon.x
+      b @ptr @Beacon.y 0 1 - * b @ptr !Beacon.y
+    else negatives @64 5 = if*
+      b @ptr @Beacon.x 0 1 - * b @ptr !Beacon.x
+      b @ptr @Beacon.z 0 1 - * b @ptr !Beacon.z
+    else negatives @64 6 = if*
+      b @ptr @Beacon.y 0 1 - * b @ptr !Beacon.y
+      b @ptr @Beacon.z 0 1 - * b @ptr !Beacon.z
+    else negatives @64 7 = if*
+      b @ptr @Beacon.x 0 1 - * b @ptr !Beacon.x
+      b @ptr @Beacon.y 0 1 - * b @ptr !Beacon.y
       b @ptr @Beacon.z 0 1 - * b @ptr !Beacon.z
     end
     1 +
@@ -263,13 +304,13 @@ proc reset_scanner ptr in
   end drop
 end
 
-proc translate int int int ptr in // x y z scanner
+proc translate ptr ptr in // x y z scanner
   memory s sizeof(ptr) end
   memory x sizeof(int) end
   memory y sizeof(int) end
   memory z sizeof(int) end
   s !ptr
-  z !64 y !64 x !64
+  dup @Beacon.z z !64 dup @Beacon.y y !64 dup @Beacon.x x !64 drop
   s @ptr Scanner.x x @64 inc64-by
   s @ptr Scanner.y y @64 inc64-by
   s @ptr Scanner.z z @64 inc64-by
@@ -292,11 +333,132 @@ proc beacons= ptr ptr -- bool in
   b1 @ptr @Beacon.z b2 @ptr @Beacon.z = land
 end
 
+proc beacon_invert ptr ptr -- ptr in
+  memory b sizeof(ptr) end
+  b !ptr
+  b @ptr @Beacon.x 0 1 - * over !Beacon.x
+  b @ptr @Beacon.y 0 1 - * over !Beacon.y
+  b @ptr @Beacon.z 0 1 - * over !Beacon.z
+end
+
+proc beacon_diff ptr ptr ptr -- ptr in
+  memory b1 sizeof(ptr) end
+  memory b2 sizeof(ptr) end
+  b2 !ptr b1 !ptr
+  b1 @ptr @Beacon.x b2 @ptr @Beacon.x - over !Beacon.x
+  b1 @ptr @Beacon.y b2 @ptr @Beacon.y - over !Beacon.y
+  b1 @ptr @Beacon.z b2 @ptr @Beacon.z - over !Beacon.z
+end
+
+proc count_overlaps ptr ptr -- int in
+  memory s1 sizeof(ptr) end
+  memory s2 sizeof(ptr) end
+  s2 !ptr s1 !ptr
+  0
+  0 while dup s1 @ptr Scanner.beacons @List.count < do
+    0 while dup s2 @ptr Scanner.beacons @List.count < do
+      over s1 @ptr Scanner.beacons list_get cast(ptr)
+      over s2 @ptr Scanner.beacons list_get cast(ptr)
+      beacons= if rot 1 + rot rot drop s2 @ptr Scanner.beacons @List.count end
+      1 +
+    end drop
+    1 +
+  end drop
+end
+
+proc mark_overlaps ptr ptr in
+  memory s1 sizeof(ptr) end
+  memory s2 sizeof(ptr) end
+  memory b1 sizeof(ptr) end
+  memory b2 sizeof(ptr) end
+  s2 !ptr s1 !ptr
+  0 while dup s1 @ptr Scanner.beacons @List.count < do
+    0 while dup s2 @ptr Scanner.beacons @List.count < do
+      over s1 @ptr Scanner.beacons list_get cast(ptr) b1 !ptr
+      dup s2 @ptr Scanner.beacons list_get cast(ptr) b2 !ptr
+      b1 @ptr b2 @ptr beacons= if over 1 + b2 @ptr !Beacon.overlaps end
+      1 +
+    end drop
+    1 +
+  end drop
+end
+
+proc copy_beacon ptr ptr -- ptr in
+  // dst src
+  over over @Beacon.x swap !Beacon.x
+  over over @Beacon.y swap !Beacon.y
+  over over @Beacon.z swap !Beacon.z
+  drop
+end
+
+memory diff_l sizeof(List) end
+memory counts sizeof(List) end
+sizeof(ptr) diff_l list_init
+sizeof(int) counts list_init
+proc common_diff ptr ptr ptr -- ptr int in
+  memory s1 sizeof(ptr) end
+  memory s2 sizeof(ptr) end
+  memory b1 sizeof(ptr) end
+  memory b2 sizeof(ptr) end
+  s2 !ptr s1 !ptr
+  tmp-end swap
+  memory diffs sizeof(ptr) end
+  sizeof(Beacon) s1 @ptr @List.count s2 @ptr @List.count * * tmp-alloc diffs !ptr
+  0 while dup s1 @ptr Scanner.beacons @List.count < do
+    0 while dup s2 @ptr Scanner.beacons @List.count < do
+      over s1 @ptr Scanner.beacons list_get cast(ptr) b1 !ptr
+      dup s2 @ptr Scanner.beacons list_get cast(ptr) b2 !ptr
+      over s1 @ptr Scanner.beacons @List.count * over + sizeof(Beacon) * diffs @ptr +ptr b1 @ptr b2 @ptr beacon_diff drop
+      1 +
+    end drop
+    1 +
+  end drop
+  // find counts of each diff
+  0 diff_l !List.count
+  0 counts !List.count
+  memory found sizeof(bool) end
+  0 while dup s1 @ptr Scanner.beacons @List.count s2 @ptr Scanner.beacons @List.count * < do
+    dup sizeof(Beacon) * diffs @ptr +ptr b1 !ptr
+    b1 @ptr @Beacon.x 0 != b1 @ptr @Beacon.y 0 != b2 @ptr @Beacon.z 0 != lor lor if
+      false found !bool
+      0 while dup diff_l @List.count < found @bool lnot land do
+        dup diff_l list_get cast(ptr) b2 !ptr
+        b1 @ptr b2 @ptr beacons= if
+          true found !bool
+          dup counts list_get 1 + over counts list_set
+        end
+        1 +
+      end drop
+      found @bool lnot if
+        b1 @ptr cast(int) diff_l list_add
+        1 counts list_add
+      end
+    end
+    1 +
+  end drop
+  0 // ret max
+  0 while over 12 < over counts @List.count < land do
+    // ret idx count max
+    dup counts list_get rot 2dup > if
+      drop
+      // max ret idx b
+      rot rot dup diff_l list_get cast(ptr)
+      // max idx ret
+      rot swap copy_beacon
+      rot rot
+    else rot rot drop end // ret max idx
+    1 +
+  end drop
+  rot tmp-rewind
+end
+
 proc overlaps ptr ptr -- bool in // s1 s2
   memory s1 sizeof(ptr) end
   memory s2 sizeof(ptr) end
   memory b1 sizeof(ptr) end
   memory b2 sizeof(ptr) end
+  memory tmp sizeof(Beacon) end
+  sizeof(Beacon) 0 tmp memset drop
   memory count sizeof(int) end
   s2 !ptr s1 !ptr
 //  "Checking overlap\n" puts
@@ -304,60 +466,21 @@ proc overlaps ptr ptr -- bool in // s1 s2
 //  s2 @ptr dump_scanner
   memory ret sizeof(bool) end
   false ret !bool
-  0 while dup 24 < ret @bool lnot land do
-    0 while dup s1 @ptr Scanner.beacons @List.count < ret @bool lnot land do
-      0 while dup s2 @ptr Scanner.beacons @List.count < ret @bool lnot land do
-        over s1 @ptr Scanner.beacons list_get cast(ptr) b1 !ptr
-        dup s2 @ptr Scanner.beacons list_get cast(ptr) b2 !ptr
-        rot dup s2 @ptr rotate rot rot
-        b1 @ptr @Beacon.x b2 @ptr @Beacon.x -
-        b1 @ptr @Beacon.y b2 @ptr @Beacon.y -
-        b1 @ptr @Beacon.z b2 @ptr @Beacon.z -
-//        b1 @ptr dump_beacon
-//        b2 @ptr dump_beacon
-        s2 @ptr translate
-        0 count !64
-        0 while dup s1 @ptr Scanner.beacons @List.count < do
-          0 while dup s2 @ptr Scanner.beacons @List.count < do
-            over s1 @ptr Scanner.beacons list_get cast(ptr)
-            over s2 @ptr Scanner.beacons list_get cast(ptr)
-            beacons= if count inc64 end
-            1 +
-          end drop
-          1 +
-        end drop
-        count @64 12 >= if
-          0 while dup s1 @ptr Scanner.beacons @List.count < do
-            0 while dup s2 @ptr Scanner.beacons @List.count < do
-              over s1 @ptr Scanner.beacons list_get cast(ptr)
-              over s2 @ptr Scanner.beacons list_get cast(ptr)
-              over over beacons= if dup true swap !Beacon.overlaps end drop drop
-              1 +
-            end drop
-            1 +
-          end drop
-          true s2 @ptr !Scanner.found
-//          s1 @ptr dump_scanner
-//          s2 @ptr dump_scanner
-          true ret !bool
-        end
-        // a b c
-        // b a c 0 0 0
-//        rot dup print rot dup print rot dup print
-        // FIXME: while this works, it is a bug, we are switching rotidx and b1idx every time...
-        // maybe we want the rotidx loop in middle?
-        // translate is just doing 0's
-//        rot 0 1 * rot 0 1 * rot 0 1 *
-//        drop drop drop
-//        s2 @ptr translate
-        // FIXME: wtf...
-        // a b c
-        // b a c
-        rot rot swap rot
-        1 +
-      end drop
-      1 +
-    end drop
+  // FIXME: should only need 24, but see fixme's in rotate for reasons
+  0 while dup 48 < ret @bool lnot land do
+    dup s2 @ptr rotate
+    tmp s1 @ptr s2 @ptr common_diff 12 >= if
+      s2 @ptr translate
+      s1 @ptr s2 @ptr mark_overlaps
+      true s2 @ptr !Scanner.found
+          s1 @ptr dump_scanner
+          s2 @ptr dump_scanner
+s2 @ptr @Scanner.num "Found scanner " puts print
+      true ret !bool
+    else
+      drop
+      s2 @ptr reset_scanner
+    end
     1 +
   end drop
   ret @bool
@@ -384,7 +507,7 @@ proc solve -- int in
             s1 @ptr s2 @ptr overlaps if
               found_count inc64
               0 while dup s2 @ptr Scanner.beacons @List.count < do
-                dup s2 @ptr Scanner.beacons list_get cast(ptr) dup @Beacon.overlaps lnot if
+                dup s2 @ptr Scanner.beacons list_get cast(ptr) dup @Beacon.overlaps 0 = if
                   dup cast(int) ret list_add
                 end drop
                 1 +
@@ -416,3 +539,4 @@ parse_input
 solve print
 //dump_scanners
 // 455 is too high
+// 635 also too high
