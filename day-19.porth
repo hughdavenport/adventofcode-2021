@@ -419,7 +419,7 @@ proc common_diff ptr ptr ptr -- ptr int in
   memory found sizeof(bool) end
   0 while dup s1 @ptr Scanner.beacons @List.count s2 @ptr Scanner.beacons @List.count * < do
     dup sizeof(Beacon) * diffs @ptr +ptr b1 !ptr
-    b1 @ptr @Beacon.x 0 != b1 @ptr @Beacon.y 0 != b2 @ptr @Beacon.z 0 != lor lor if
+    b1 @ptr @Beacon.x 0 != b1 @ptr @Beacon.y 0 != b1 @ptr @Beacon.z 0 != lor lor if
       false found !bool
       0 while dup diff_l @List.count < found @bool lnot land do
         dup diff_l list_get cast(ptr) b2 !ptr
@@ -470,11 +470,12 @@ proc overlaps ptr ptr -- bool in // s1 s2
   0 while dup 48 < ret @bool lnot land do
     dup s2 @ptr rotate
     tmp s1 @ptr s2 @ptr common_diff 12 >= if
+s2 @ptr @Scanner.num 19 = if dup dump_beacon tmp s1 @ptr s2 @ptr common_diff print dump_beacon end
       s2 @ptr translate
       s1 @ptr s2 @ptr mark_overlaps
       true s2 @ptr !Scanner.found
-          s1 @ptr dump_scanner
-          s2 @ptr dump_scanner
+//          s1 @ptr dump_scanner
+//          s2 @ptr dump_scanner
 s2 @ptr @Scanner.num "Found scanner " puts print
       true ret !bool
     else
@@ -508,7 +509,20 @@ proc solve -- int in
               found_count inc64
               0 while dup s2 @ptr Scanner.beacons @List.count < do
                 dup s2 @ptr Scanner.beacons list_get cast(ptr) dup @Beacon.overlaps 0 = if
-                  dup cast(int) ret list_add
+                  // b1 found idx
+                  false
+                  0 while dup ret @List.count < do
+                    rot over ret list_get cast(ptr) over over beacons= if
+                      drop rot drop true rot
+                    else
+                      drop rot rot
+                    end
+                    1 +
+                  end drop
+                  lnot if
+                    dup cast(int) ret list_add
+//                  else "double overlap somewhere\n" puts dup dump_beacon
+                  end
                 end drop
                 1 +
               end drop
@@ -537,6 +551,7 @@ end
 parse_input
 //dump_scanners
 solve print
-//dump_scanners
+dump_scanners
 // 455 is too high
 // 635 also too high
+// 623 also too high
