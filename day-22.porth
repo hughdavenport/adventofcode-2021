@@ -1,0 +1,88 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+const N 101 end
+memory data sizeof(bool) N N N * * * end
+
+proc parse_input in
+  memory state sizeof(bool) end
+  memory x_start sizeof(int) end
+  memory x_end sizeof(int) end
+  memory y_start sizeof(int) end
+  memory y_end sizeof(int) end
+  memory z_start sizeof(int) end
+  memory z_end sizeof(int) end
+  memory x sizeof(int) end
+  memory y sizeof(int) end
+  memory z sizeof(int) end
+  read_stdin_to_str @Str input !Str
+  while len(input) 0 > do
+    line input str-chop-line
+    word line str-chop-word
+    "on" @word streq state !bool
+    "x=" drop line str-chop-n-left
+    '.' word line str-chop-by-delim line str-chop-one-left
+    @word try-parse-signed-int drop x_start !int
+    ',' word line str-chop-by-delim
+    @word try-parse-signed-int drop x_end !int
+    "y=" drop line str-chop-n-left
+    '.' word line str-chop-by-delim line str-chop-one-left
+    @word try-parse-signed-int drop y_start !int
+    ',' word line str-chop-by-delim
+    @word try-parse-signed-int drop y_end !int
+    "y=" drop line str-chop-n-left
+    '.' word line str-chop-by-delim line str-chop-one-left
+    @word try-parse-signed-int drop z_start !int
+    @line try-parse-signed-int drop z_end !int
+    x_start @int 0 50 - >=
+    x_end @int 50 <= land
+    y_start @int 0 50 - >= land
+    y_end @int 50 <= land
+    z_start @int 0 50 - >= land
+    z_end @int 50 <= land
+    if
+//      "New row\n" puts
+      x_start @int while dup x_end @int <= do
+        x !64
+        y_start @int while dup y_end @int <= do
+          y !64
+          z_start @int while dup z_end @int <= do
+            z !64
+            z @64 50 + N N * *
+            y @64 50 + N * +
+            x @64 50 + +
+            sizeof(bool) * data +ptr
+            dup @int state @int != if
+              state @bool swap !bool
+//              "Setting (" puts x @64 putd "," puts y @64 putd "," puts z @64 putd ") to " puts state @int print
+            else drop
+            end
+            z @64 1 +
+          end drop
+          y @64 1 +
+        end drop
+        x @64 1 +
+      end drop
+    end
+  end
+end
+
+proc count_data -- int in
+  0
+  0 while dup sizeof(bool) N N N * * * < do
+    dup data +ptr @bool if swap 1 + swap end
+    sizeof(bool) +
+  end drop
+end
+
+
+parse_input
+count_data print
