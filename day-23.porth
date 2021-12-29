@@ -96,7 +96,7 @@ proc h ptr -- int in
               1 +
             end drop
             steps @64 0 != if
-              4 steps !64 // up and out, back and in
+              steps 4 inc64-by // up and out, back and in
               y @64 steps swap inc64-by // we had to go up more than from top
               dup cost steps @64 * ret swap inc64-by
             end
@@ -116,7 +116,7 @@ proc f ptr -- int in dup @Node.g swap h + end
 proc dump_node ptr in
   memory node sizeof(ptr) end
   node !ptr
-  "Node, g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
+  "Node, (" puts node @ptr cast(int) putu "), g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
   0 while dup node @ptr height < do
     0 while dup WIDTH < do
       2dup node @ptr @Node.map[x][y] putc
@@ -372,14 +372,14 @@ proc solve ptr -- ptr in
   current @ptr cast(int) visited list_add
   while q @List.count 0 > do
     0 q list_get cast(ptr) current !ptr
-    current @ptr @Node.part2 if
-      "q size: " puts q @List.count putu ", visited size: " puts visited @List.count print
-      "Current node:\n" puts
-      current @ptr dump_node
-    end
+//    current @ptr @Node.part2 current @ptr f 38000 > land if
+//      "q size: " puts q @List.count putu ", visited size: " puts visited @List.count print
+//      "Current node:\n" puts
+//      current @ptr dump_node
+//    end
     current @ptr is_solved if
       true solved !bool
-      0 visited !List.count
+      sizeof(ptr) visited list_init
       0 q !List.count // break
     else
       q @List.count 1 > if
@@ -389,16 +389,16 @@ proc solve ptr -- ptr in
       end
       0 neighbours !List.count
       current @ptr neighbours get_neighbours
-    current @ptr @Node.part2 if "Neighbours:\n" puts end
+//    current @ptr @Node.part2 if "Neighbours:\n" puts end
       0 while dup neighbours @List.count < do
         dup neighbours list_get cast(ptr)
-    current @ptr @Node.part2 if dup dump_node end
+//    current @ptr @Node.part2 if dup dump_node end
         dup in_visited lnot if
           dup is_solved if
             true solved !bool
             current !ptr
             0 q !List.count
-            0 visited !List.count
+            sizeof(ptr) visited list_init
             drop neighbours @List.count
           else
             dup cast(int) q list_add heapify
@@ -409,7 +409,7 @@ proc solve ptr -- ptr in
       end drop
     end
   end
-  solved @bool lnot if NULL else current @ptr end
+  solved @bool lnot if current @ptr dump_node NULL else current @ptr end
 end
 
 
@@ -446,6 +446,4 @@ parse_input
 dup copy_node
 solve
 @Node.g print
-add_part2
-dup dump_node
- solve @Node.g print
+add_part2 solve @Node.g print
