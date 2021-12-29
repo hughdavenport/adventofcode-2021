@@ -37,7 +37,7 @@ test_input() {
       cat $DIFF_TMP
     }
   else
-    fail "${EXE} < ???"
+    fail "${EXE} # No input file"
     echo "No input file"
   fi
   rm $DIFF_TMP

@@ -1,0 +1,377 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+const WIDTH 11 end
+const HEIGHT 3 end
+const sizeof(Node.map.row) sizeof(char) WIDTH * end
+const sizeof(Node.map) sizeof(Node.map.row) HEIGHT * end
+const offsetof(Node.map) sizeof(Node.map) offset end
+const offsetof(Node.g) sizeof(int) offset end
+const offsetof(Node.cached_h) sizeof(int) offset end
+const offsetof(Node.free) sizeof(bool) offset end
+const offsetof(Node.prev) sizeof(ptr) offset end
+const sizeof(Node) reset end
+proc Node.map ptr -- ptr in offsetof(Node.map) ptr+ end
+proc Node.map[x][y] int int ptr -- ptr in Node.map rot rot swap WIDTH * + sizeof(char) * ptr+ end
+proc @Node.map[x][y] int int ptr -- int in Node.map[x][y] @8 end
+proc !Node.map[x][y] int int int ptr in Node.map[x][y] !8 end
+proc Node.g ptr -- ptr in offsetof(Node.g) ptr+ end
+proc @Node.g ptr -- int in Node.g @64 end
+proc !Node.g int ptr in Node.g !64 end
+proc Node.cached_h ptr -- ptr in offsetof(Node.cached_h) ptr+ end
+proc @Node.cached_h ptr -- int in Node.cached_h @64 end
+proc !Node.cached_h int ptr in Node.cached_h !64 end
+proc Node.free ptr -- ptr in offsetof(Node.free) ptr+ end
+proc @Node.free ptr -- bool in Node.free @bool end
+proc !Node.free bool ptr in Node.free !bool end
+proc Node.prev ptr -- ptr in offsetof(Node.prev) ptr+ end
+proc @Node.prev ptr -- ptr in Node.prev @ptr end
+proc !Node.prev ptr ptr in Node.prev !ptr end
+
+proc cost int -- int in
+  1 // multiplier
+  swap 'A' - while dup 0 > do
+    swap 10 * swap 1 -
+  end drop
+end
+
+proc target int -- int in
+  'A' - 2 * 2 +
+end
+
+proc h ptr -- int in
+  memory node sizeof(ptr) end
+  node !ptr
+  memory ret sizeof(int) end
+  node @ptr @Node.cached_h ret !64
+  ret @64 0 = if
+    memory steps sizeof(int) end
+    memory y sizeof(int) end
+    memory x sizeof(int) end
+    0 0 while dup WIDTH < do // hallway
+      2dup node @ptr @Node.map[x][y]
+      dup '.' != if
+        1 steps !64 // move 1 down
+        2dup target - abs steps swap inc64-by // move to target col
+        dup cost steps @64 * ret swap inc64-by
+      end drop
+      1 +
+    end 2drop
+    1 while dup HEIGHT < do // bottom two rows have holes
+      dup y !64
+      2 while dup 9 < do // column of hols (2, 4, 6, 8)
+        dup x !64
+        2dup node @ptr @Node.map[x][y]
+        dup '.' != if
+          2dup target != if
+            2 steps !64 // we have to get to the hallway and back
+            rot dup 2 = if steps inc64 end rot rot // bottom has to go up an extra space
+            2dup target - abs steps swap inc64-by // move to target col
+            dup cost steps @64 * ret swap inc64-by
+          // y x c
+          else 2 x @64 node @ptr @Node.map[x][y] over != y @64 1 = land if* // we need to allow the incorrect one below us to get out
+            dup cost 5 * ret swap inc64-by // 2 up and out, 3 back and down fully
+          end
+        end drop
+        2 +
+      end drop
+      1 +
+    end drop
+  end
+  ret @64 dup node @ptr !Node.cached_h
+end
+
+proc is_solved ptr -- bool in h 0 = end
+proc f ptr -- int in dup @Node.g swap h + end
+
+proc dump_node ptr in
+  memory node sizeof(ptr) end
+  node !ptr
+  "Node, g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
+  0 while dup HEIGHT < do
+    0 while dup WIDTH < do
+      2dup node @ptr @Node.map[x][y] putc
+      1 +
+    end drop
+    newline
+    1 +
+  end drop
+end
+
+const MAX_NODES 100000 end
+memory nodes sizeof(Node) MAX_NODES * end
+memory len(nodes) sizeof(int) end
+proc new_node -- ptr in
+  NULL
+  0 while dup len(nodes) @64 < do
+    dup sizeof(Node) * nodes +ptr dup @Node.free if
+      dup true swap !Node.free
+      dup 0 swap !Node.g
+      swap drop swap drop len(nodes) @64
+    else drop end
+    1 +
+  end drop
+  dup NULL ptr= if
+    drop
+    len(nodes) @64 MAX_NODES = if
+      "Overflow in new_node\n" eputs
+      1 exit
+    end
+    len(nodes) @64 sizeof(Node) * nodes +ptr
+    len(nodes) inc64
+  end
+end
+
+proc copy_node ptr -- ptr in
+  dup sizeof(Node) new_node rot swap memcpy swap over !Node.prev dup 0 swap !Node.cached_h
+end
+
+proc node= ptr ptr -- bool in
+  sizeof(Node.map) rot Node.map rot Node.map memcmp 0 =
+end
+
+proc parse_input -- ptr in
+  memory node sizeof(ptr) end
+  new_node node !ptr
+  read_stdin_to_str @Str input !Str
+  line input str-chop-line
+  0 while dup HEIGHT < do
+    line input str-chop-line
+    line str-chop-one-left
+    0 while dup WIDTH < line ?str-empty lnot land do
+      2dup node @ptr Node.map[x][y] line @Str.data @8 swap !8 line str-chop-one-left
+      1 +
+    end drop
+    1 +
+  end drop
+  node @ptr
+end
+
+memory q sizeof(List) end
+sizeof(ptr) q list_init
+
+proc _heapify int in // idx
+  dup dup q list_get cast(ptr) f
+  // i s s_f
+  over 2 * 1 +
+  // i s s_f l
+  dup q @List.count < if
+    2dup q list_get cast(ptr) f swap 2dup < if
+      drop rot drop rot drop
+    else
+      2drop drop
+    end
+  else
+    drop
+  end
+  // i s s_f
+  rot rot swap rot
+  // s i s_f
+  over 2 * 2 +
+  // s i s_f r
+  dup q @List.count < if
+    2dup q list_get cast(ptr) f swap 2dup < if
+      drop rot drop drop rot drop
+    else
+      2drop 2drop swap
+    end
+  else
+    2drop swap
+  end
+  // i s
+
+  2dup != if
+    // s s_v i
+    dup q list_get swap
+    rot swap over q list_get over q list_set
+    rot rot q list_set
+drop //    _heapify
+  else
+    2drop
+  end
+end
+
+proc heapify in
+  q @List.count 2 / 1 - while dup 0 >= do
+    dup _heapify
+    1 -
+  end drop
+end
+
+proc is_clear int int ptr -- bool in @Node.map[x][y] '.' = end
+proc is_in_target int int ptr -- bool in memory t sizeof(int) end over t !64 @Node.map[x][y] target t @64 = end
+
+proc get_neighbours ptr ptr in
+  memory list sizeof(ptr) end
+  list !ptr
+  memory node sizeof(ptr) end
+  node !ptr
+  memory dst sizeof(ptr) end
+  memory blocked sizeof(bool) end
+  memory c sizeof(int) end
+  memory y sizeof(int) end
+  0 0 while dup WIDTH < do // hallway
+    2dup node @ptr @Node.map[x][y]
+    dup '.' != if
+      false blocked !bool
+      2dup 2dup target - signum rot swap - swap target min_max while 2dup < do
+        0 over node @ptr is_clear lnot if true blocked !bool end
+        1 -
+      end 2drop
+      dup target 2 swap node @ptr is_clear
+      over target 2 swap node @ptr is_in_target lor
+      over target 1 swap node @ptr is_clear land
+      blocked @bool lnot land if
+        // Can only move into a room if it is our dest and empty or only has our kind in it
+        node @ptr copy_node dst !ptr
+        // y x c (abs(x-t)+1)*cost
+        2dup target - abs 1 + over cost * dst @ptr @Node.g + dst @ptr !Node.g
+        dup target 2 swap node @ptr is_clear if dup cost dst @ptr @Node.g + dst @ptr !Node.g 2 else 1 end
+        // dst_row
+        over target dst @ptr !Node.map[x][y]
+        2dup '.' rot rot dst @ptr !Node.map[x][y]
+        dst @ptr cast(int) list @ptr list_add
+      else drop end
+    else drop end
+    1 +
+  end 2drop
+  1 while dup HEIGHT < do // bottom two rows have holes
+    dup y !64
+    2 while dup 9 < do // column of hols
+      2dup node @ptr @Node.map[x][y]
+      dup '.' != if
+        false blocked !bool
+        y @64 2 = if over 1 swap node @ptr is_clear lnot if true blocked !bool end end
+        2dup target = y @64 1 = land over target 2 swap node @ptr is_clear land if
+          // We are already in the right column, need to move down
+          node @ptr copy_node dst !ptr
+          dup cost dst @ptr @Node.g + dst @ptr !Node.g
+          over 2 swap dst @ptr !Node.map[x][y]
+          2dup '.' rot rot dst @ptr !Node.map[x][y]
+          dst @ptr cast(int) list @ptr list_add
+        else blocked @bool lnot if*
+          // Need to create many neighbours for all the possible hallway locations we could go
+          c !8
+          // will go up 1 or two
+          dup 1 - while dup 0 > do
+            0 over node @ptr is_clear lnot if
+              true blocked !bool
+              drop 0
+            else
+              node @ptr copy_node dst !ptr
+              2dup - y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
+              0 over c @8 rot rot dst @ptr !Node.map[x][y]
+              over y @64 swap '.' rot rot dst @ptr !Node.map[x][y]
+              dst @ptr cast(int) list @ptr list_add
+            end
+            2 -
+          end drop
+          blocked @bool lnot 0 0 node @ptr is_clear land if
+            node @ptr copy_node dst !ptr
+            dup y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
+            0 0 c @8 rot rot dst @ptr !Node.map[x][y]
+            y @64 over '.' rot rot dst @ptr !Node.map[x][y]
+            dst @ptr cast(int) list @ptr list_add
+          end
+          false blocked !bool
+          dup 1 + while dup WIDTH < do
+            0 over node @ptr is_clear lnot if
+              true blocked !bool
+              drop WIDTH
+            else
+              node @ptr copy_node dst !ptr
+              2dup swap - y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
+              0 over c @8 rot rot dst @ptr !Node.map[x][y]
+              over y @64 swap '.' rot rot dst @ptr !Node.map[x][y]
+              dst @ptr cast(int) list @ptr list_add
+            end
+            2 +
+          end drop
+          blocked @bool lnot 0 WIDTH node @ptr is_clear land if
+            node @ptr copy_node dst !ptr
+            WIDTH 1 - over - y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
+            0 WIDTH 1 - c @8 rot rot dst @ptr !Node.map[x][y]
+            y @64 over '.' rot rot dst @ptr !Node.map[x][y]
+            dst @ptr cast(int) list @ptr list_add
+          end
+        else drop end
+      else drop end
+      2 +
+    end drop
+    1 +
+  end drop
+end
+
+memory visited sizeof(List) end
+sizeof(ptr) visited list_init
+proc in_visited ptr -- bool in
+  memory node sizeof(ptr) end
+  node !ptr
+  false
+  0 while over lnot over visited @List.count < land do
+    dup visited list_get cast(ptr) node @ptr node= if
+      swap drop true swap
+    end
+    1 +
+  end drop
+end
+
+memory neighbours sizeof(List) end
+sizeof(ptr) neighbours list_init
+proc solve ptr -- ptr in
+  memory solved sizeof(bool) end
+  false solved !bool
+  memory current sizeof(ptr) end
+  current !ptr
+  current @ptr cast(int) q list_add heapify
+  current @ptr cast(int) visited list_add
+  while q @List.count 0 > do
+    0 q list_get cast(ptr) current !ptr
+    current @ptr is_solved if
+      true solved !bool
+      0 q !List.count // break
+    else
+      q @List.count 1 > if
+        q @List.count 1 - q list_remove 0 q list_set heapify // swap with last elem and heapify
+      else
+        0 q list_remove drop
+      end
+      0 neighbours !List.count
+      current @ptr neighbours get_neighbours
+      0 while dup neighbours @List.count < do
+        dup neighbours list_get cast(ptr)
+        dup in_visited lnot if
+          dup is_solved if
+            true solved !bool
+            current !ptr
+            0 q !List.count
+            drop neighbours @List.count
+          else
+            dup cast(int) q list_add heapify
+            cast(int) visited list_add
+          end
+        else true swap !Node.free end
+        1 +
+      end drop
+    end
+  end
+  solved @bool lnot if NULL else current @ptr end
+end
+
+
+proc dump_path ptr in
+  dup @Node.prev dup NULL ptr!= if dump_path else drop end
+  dump_node
+end
+
+parse_input
+solve
+@Node.g print

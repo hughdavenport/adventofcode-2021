@@ -1,0 +1,5 @@
+include "helpers.porth"
+
+"abcdef" "acbdef" swap drop memcmp putd newline // -1
+"abcdef" "abcdefg" swap drop memcmp putd newline // 0
+"abcdfe" "abcdef" swap drop memcmp putd newline // 1

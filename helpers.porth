@@ -1,5 +1,22 @@
 include "std.porth"
 
+proc memcmp int ptr ptr -- int in
+  memory m1 sizeof(ptr) end
+  memory m2 sizeof(ptr) end
+  memory ret sizeof(int) end
+  m2 !64
+  m1 !64
+  0 swap
+  while over 0 = over 0 > land do
+    m1 @ptr @8
+    m2 @ptr @8
+    - rot drop swap
+    m1 inc64
+    m2 inc64
+    1 -
+  end drop
+end
+
 // STACK
 proc 2dup int int -- int int int int in over over end
 proc 2drop int int -- in drop drop end
