@@ -12,49 +12,268 @@ proc len(word) -- int in word @Str.count end
 const N 101 end
 memory data sizeof(bool) N N N * * * end
 
+const offsetof(x_start) sizeof(int) offset end
+const offsetof(x_end) sizeof(int) offset end
+const offsetof(y_start) sizeof(int) offset end
+const offsetof(y_end) sizeof(int) offset end
+const offsetof(z_start) sizeof(int) offset end
+const offsetof(z_end) sizeof(int) offset end
+const offsetof(free) sizeof(bool) offset end
+const sizeof(Range) reset end
+
+proc Range.x_start ptr -- ptr in offsetof(x_start) ptr+ end
+proc Range.x_end ptr -- ptr in offsetof(x_end) ptr+ end
+proc Range.y_start ptr -- ptr in offsetof(y_start) ptr+ end
+proc Range.y_end ptr -- ptr in offsetof(y_end) ptr+ end
+proc Range.z_start ptr -- ptr in offsetof(z_start) ptr+ end
+proc Range.z_end ptr -- ptr in offsetof(z_end) ptr+ end
+proc Range.free ptr -- ptr in offsetof(free) ptr+ end
+proc @Range.x_start ptr -- int in Range.x_start @int end
+proc @Range.x_end ptr -- int in Range.x_end @int end
+proc @Range.y_start ptr -- int in Range.y_start @int end
+proc @Range.y_end ptr -- int in Range.y_end @int end
+proc @Range.z_start ptr -- int in Range.z_start @int end
+proc @Range.z_end ptr -- int in Range.z_end @int end
+proc @Range.free ptr -- bool in Range.free @bool end
+proc !Range.x_start int ptr in Range.x_start !int end
+proc !Range.x_end int ptr in Range.x_end !int end
+proc !Range.y_start int ptr in Range.y_start !int end
+proc !Range.y_end int ptr in Range.y_end !int end
+proc !Range.z_start int ptr in Range.z_start !int end
+proc !Range.z_end int ptr in Range.z_end !int end
+proc !Range.free bool ptr in Range.free !bool end
+
+
+proc range_dump ptr -- in
+  memory range sizeof(ptr) end
+  range !ptr
+  "x=" puts range @ptr @Range.x_start putd ".." puts range @ptr @Range.x_end putd "," puts
+  "y=" puts range @ptr @Range.y_start putd ".." puts range @ptr @Range.y_end putd "," puts
+  "z=" puts range @ptr @Range.z_start putd ".." puts range @ptr @Range.z_end putd newline
+end
+
+const MAX_RANGES 10000 end
+memory ranges sizeof(Range) MAX_RANGES * end
+memory len(ranges) sizeof(int) end
+proc new_range -- ptr in
+  NULL
+  0 while dup len(ranges) @64 < do
+    dup sizeof(Range) * ranges +ptr dup @Range.free if
+      false over !Range.free
+      swap drop swap drop len(ranges) @64
+    else drop end
+    1 +
+  end drop
+  dup NULL ptr= if
+    len(ranges) @int MAX_RANGES = if
+      "Overflow in new_range\n" eputs
+      1 exit
+    end
+    drop
+    len(ranges) @64 sizeof(Range) * ranges +ptr
+    len(ranges) inc64
+  end
+end
+
+proc range_size ptr -- int in
+  memory range sizeof(ptr) end
+  range !ptr
+  range @ptr @Range.x_end 1 + range @ptr @Range.x_start -
+  range @ptr @Range.y_end 1 + range @ptr @Range.y_start - *
+  range @ptr @Range.z_end 1 + range @ptr @Range.z_start - *
+end
+
+proc range_overlaps ptr ptr -- ptr bool in
+  memory r1 sizeof(ptr) end
+  memory r2 sizeof(ptr) end
+  r2 !ptr r1 !ptr
+  memory ret sizeof(ptr) end
+  NULL ret !ptr
+  memory overlaps sizeof(bool) end
+  false overlaps !bool
+  r1 @ptr @Range.x_start r2 @ptr @Range.x_end <=
+  r1 @ptr @Range.x_end r2 @ptr @Range.x_start >= land
+  r1 @ptr @Range.y_start r2 @ptr @Range.y_end <=
+  r1 @ptr @Range.y_end r2 @ptr @Range.y_start >= land
+  r1 @ptr @Range.z_start r2 @ptr @Range.z_end <=
+  r1 @ptr @Range.z_end r2 @ptr @Range.z_start >= land
+  land land if
+    new_range ret !ptr
+    true overlaps !bool
+    r1 @ptr @Range.x_start ret @ptr !Range.x_start
+    r1 @ptr @Range.x_end ret @ptr !Range.x_end
+    r1 @ptr @Range.y_start ret @ptr !Range.y_start
+    r1 @ptr @Range.y_end ret @ptr !Range.y_end
+    r1 @ptr @Range.z_start ret @ptr !Range.z_start
+    r1 @ptr @Range.z_end ret @ptr !Range.z_end
+    r1 @ptr @Range.z_start r2 @ptr @Range.z_start < if
+//      "Trim before z\n" puts
+      // we can trim off before z start
+      r1 @ptr @Range.z_start ret @ptr !Range.z_start
+      r2 @ptr @Range.z_start 1 - ret @ptr !Range.z_end
+      // trim r1
+      r2 @ptr @Range.z_start r1 @ptr !Range.z_start
+    else r1 @ptr @Range.z_end r2 @ptr @Range.z_end > if*
+//      "Trim after z\n" puts
+      // we can trim off after z end
+      r2 @ptr @Range.z_end 1 + ret @ptr !Range.z_start
+      r1 @ptr @Range.z_end ret @ptr !Range.z_end
+      // trim r1
+      r2 @ptr @Range.z_end r1 @ptr !Range.z_end
+    else r1 @ptr @Range.y_start r2 @ptr @Range.y_start < if*
+//      "Trim before y\n" puts
+      // we can trim off before y start
+      r1 @ptr @Range.y_start ret @ptr !Range.y_start
+      r2 @ptr @Range.y_start 1 - ret @ptr !Range.y_end
+      // trim r1
+      r2 @ptr @Range.y_start r1 @ptr !Range.y_start
+    else r1 @ptr @Range.y_end r2 @ptr @Range.y_end > if*
+//      "Trim after y\n" puts
+      // we can trim off after y end
+      r2 @ptr @Range.y_end 1 + ret @ptr !Range.y_start
+      r1 @ptr @Range.y_end ret @ptr !Range.y_end
+      // trim r1
+      r2 @ptr @Range.y_end r1 @ptr !Range.y_end
+    else r1 @ptr @Range.x_start r2 @ptr @Range.x_start < if*
+//      "Trim before x\n" puts
+      // we can trim off before x start
+      r1 @ptr @Range.x_start ret @ptr !Range.x_start
+      r2 @ptr @Range.x_start 1 - ret @ptr !Range.x_end
+      // trim r1
+      r2 @ptr @Range.x_start r1 @ptr !Range.x_start
+    else r1 @ptr @Range.x_end r2 @ptr @Range.x_end > if*
+//      "Trim after x\n" puts
+      // we can trim off after x end
+      r2 @ptr @Range.x_end 1 + ret @ptr !Range.x_start
+      r1 @ptr @Range.x_end ret @ptr !Range.x_end
+      // trim r1
+      r2 @ptr @Range.x_end r1 @ptr !Range.x_end
+    else
+//      "Completely overlaps\n" puts
+      true cast(bool) ret @ptr !Range.free
+      NULL ret !ptr
+    end
+  end
+  ret @ptr overlaps @bool
+end
+
+memory ons sizeof(List) end
+sizeof(ptr) ons list_init
+
+proc dump_ons in
+  "Currently on: \n" puts
+  0 while dup ons @List.count < do
+    dup ons list_get cast(ptr) range_dump
+    1 +
+  end drop
+  newline
+end
+
+proc count_ranges -- int in
+  0
+  0 while dup ons @List.count < do
+    dup ons list_get cast(ptr) range_size rot + swap
+    1 +
+  end drop
+end
+
+memory indent sizeof(int) end
+0 1 - indent !int
+proc print_indent in 0 while dup indent @64 < do "  " puts 1 + end drop end
+
+proc turn_on_range ptr -- in
+  memory range sizeof(ptr) end
+  range !ptr
+  indent inc64
+//print_indent  "in turn_on_range with:" puts range @ptr range_dump
+  0 while dup ons @List.count < do
+    range @ptr over ons list_get cast(ptr) range_overlaps if
+      dup NULL ptr= if
+//print_indent        "Completely overlaps, dropping\n" puts
+//print_indent        over ons list_get cast(ptr) "Overlapped with: " puts range_dump
+//print_indent        "Orig range is: " puts range @ptr range_dump
+        true range @ptr !Range.free
+        NULL range !ptr
+        drop drop ons @List.count
+      else
+//print_indent        over ons list_get cast(ptr) "Overlapped with: " puts range_dump
+//print_indent        dup "Created new range: " puts range_dump
+//print_indent        "Orig range is now: " puts range @ptr range_dump
+        turn_on_range // check new range with the rest recursively
+        drop 0 1 - // start back at start for orig range
+      end
+    else drop
+    end
+    1 +
+  end drop
+  range @ptr dup NULL ptr!= if
+//print_indent    dup "Adding to list: " puts range_dump
+    cast(int) ons list_add
+  else drop end
+//print_indent "Finished\n" puts
+  indent dec64
+end
+
+proc turn_off_range ptr -- in
+  memory range sizeof(ptr) end
+  range !ptr
+//print_indent  "in turn_off_range with:" puts range @ptr range_dump
+  ons @List.count 1 - while dup 0 >= do
+    // idx new
+    dup ons list_get cast(ptr) range @ptr range_overlaps if
+      dup NULL ptr= if
+//print_indent        "Completely overlaps, turning off\n" puts
+        drop dup ons list_remove true swap cast(ptr) !Range.free
+      else
+//print_indent        dup "Created new *on* range: " puts range_dump
+        cast(int) ons list_add
+        1 + // do this one again
+      end
+    else drop
+    end
+    1 -
+  end drop
+end
+
 proc parse_input in
   memory state sizeof(bool) end
-  memory x_start sizeof(int) end
-  memory x_end sizeof(int) end
-  memory y_start sizeof(int) end
-  memory y_end sizeof(int) end
-  memory z_start sizeof(int) end
-  memory z_end sizeof(int) end
+  memory range sizeof(ptr) end
   memory x sizeof(int) end
   memory y sizeof(int) end
   memory z sizeof(int) end
   read_stdin_to_str @Str input !Str
   while len(input) 0 > do
+    new_range range !ptr
     line input str-chop-line
     word line str-chop-word
     "on" @word streq state !bool
     "x=" drop line str-chop-n-left
     '.' word line str-chop-by-delim line str-chop-one-left
-    @word try-parse-signed-int drop x_start !int
+    @word try-parse-signed-int drop range @ptr !Range.x_start
     ',' word line str-chop-by-delim
-    @word try-parse-signed-int drop x_end !int
+    @word try-parse-signed-int drop range @ptr !Range.x_end
     "y=" drop line str-chop-n-left
     '.' word line str-chop-by-delim line str-chop-one-left
-    @word try-parse-signed-int drop y_start !int
+    @word try-parse-signed-int drop range @ptr !Range.y_start
     ',' word line str-chop-by-delim
-    @word try-parse-signed-int drop y_end !int
+    @word try-parse-signed-int drop range @ptr !Range.y_end
     "y=" drop line str-chop-n-left
     '.' word line str-chop-by-delim line str-chop-one-left
-    @word try-parse-signed-int drop z_start !int
-    @line try-parse-signed-int drop z_end !int
-    x_start @int 0 50 - >=
-    x_end @int 50 <= land
-    y_start @int 0 50 - >= land
-    y_end @int 50 <= land
-    z_start @int 0 50 - >= land
-    z_end @int 50 <= land
+    @word try-parse-signed-int drop range @ptr !Range.z_start
+    @line try-parse-signed-int drop range @ptr !Range.z_end
+    range @ptr @Range.x_start 0 50 - >=
+    range @ptr @Range.x_end 50 <= land
+    range @ptr @Range.y_start 0 50 - >= land
+    range @ptr @Range.y_end 50 <= land
+    range @ptr @Range.z_start 0 50 - >= land
+    range @ptr @Range.z_end 50 <= land
     if
 //      "New row\n" puts
-      x_start @int while dup x_end @int <= do
+      range @ptr @Range.x_start while dup range @ptr @Range.x_end <= do
         x !64
-        y_start @int while dup y_end @int <= do
+        range @ptr @Range.y_start while dup range @ptr @Range.y_end <= do
           y !64
-          z_start @int while dup z_end @int <= do
+          range @ptr @Range.z_start while dup range @ptr @Range.z_end <= do
             z !64
             z @64 50 + N N * *
             y @64 50 + N * +
@@ -72,6 +291,13 @@ proc parse_input in
         x @64 1 +
       end drop
     end
+    state @bool if
+      range @ptr turn_on_range
+    else
+      range @ptr turn_off_range
+    end
+//    dump_ons
+//    count_ranges print
   end
 end
 
@@ -86,3 +312,4 @@ end
 
 parse_input
 count_data print
+count_ranges print
