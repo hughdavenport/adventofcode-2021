@@ -499,6 +499,7 @@ proc solve -- int in
     1 +
   end drop
   while found_count @64 len(scanners) @64 < do
+    "At start of loop\n" puts
     0 while dup len(scanners) @64 < do
       dup scanners[i] s1 !ptr
       s1 @ptr @Scanner.found if
