@@ -10,13 +10,14 @@ proc @word -- int ptr in word @Str end
 proc len(word) -- int in word @Str.count end
 
 const WIDTH 11 end
-const HEIGHT 3 end
+const HEIGHT 5 end
 const sizeof(Node.map.row) sizeof(char) WIDTH * end
 const sizeof(Node.map) sizeof(Node.map.row) HEIGHT * end
 const offsetof(Node.map) sizeof(Node.map) offset end
 const offsetof(Node.g) sizeof(int) offset end
 const offsetof(Node.cached_h) sizeof(int) offset end
 const offsetof(Node.free) sizeof(bool) offset end
+const offsetof(Node.part2) sizeof(bool) offset end
 const offsetof(Node.prev) sizeof(ptr) offset end
 const sizeof(Node) reset end
 proc Node.map ptr -- ptr in offsetof(Node.map) ptr+ end
@@ -32,6 +33,9 @@ proc !Node.cached_h int ptr in Node.cached_h !64 end
 proc Node.free ptr -- ptr in offsetof(Node.free) ptr+ end
 proc @Node.free ptr -- bool in Node.free @bool end
 proc !Node.free bool ptr in Node.free !bool end
+proc Node.part2 ptr -- ptr in offsetof(Node.part2) ptr+ end
+proc @Node.part2 ptr -- bool in Node.part2 @bool end
+proc !Node.part2 bool ptr in Node.part2 !bool end
 proc Node.prev ptr -- ptr in offsetof(Node.prev) ptr+ end
 proc @Node.prev ptr -- ptr in Node.prev @ptr end
 proc !Node.prev ptr ptr in Node.prev !ptr end
@@ -47,6 +51,10 @@ proc target int -- int in
   'A' - 2 * 2 +
 end
 
+proc is_clear int int ptr -- bool in @Node.map[x][y] '.' = end
+proc is_in_target int int ptr -- bool in memory t sizeof(int) end over t !64 @Node.map[x][y] target t @64 = end
+
+proc height ptr -- int in @Node.part2 if HEIGHT else 3 end end
 proc h ptr -- int in
   memory node sizeof(ptr) end
   node !ptr
@@ -59,13 +67,13 @@ proc h ptr -- int in
     0 0 while dup WIDTH < do // hallway
       2dup node @ptr @Node.map[x][y]
       dup '.' != if
-        1 steps !64 // move 1 down
+        1 steps !64
         2dup target - abs steps swap inc64-by // move to target col
         dup cost steps @64 * ret swap inc64-by
       end drop
       1 +
     end 2drop
-    1 while dup HEIGHT < do // bottom two rows have holes
+    1 while dup node @ptr height < do // bottom two rows have holes
       dup y !64
       2 while dup 9 < do // column of hols (2, 4, 6, 8)
         dup x !64
@@ -73,12 +81,25 @@ proc h ptr -- int in
         dup '.' != if
           2dup target != if
             2 steps !64 // we have to get to the hallway and back
-            rot dup 2 = if steps inc64 end rot rot // bottom has to go up an extra space
+            rot dup while dup 2 >= do steps inc64 1 - end drop rot rot // bottom has to go up an extra space(s)
             2dup target - abs steps swap inc64-by // move to target col
             dup cost steps @64 * ret swap inc64-by
           // y x c
-          else 2 x @64 node @ptr @Node.map[x][y] over != y @64 1 = land if* // we need to allow the incorrect one below us to get out
-            dup cost 5 * ret swap inc64-by // 2 up and out, 3 back and down fully
+          else
+            0 steps !64
+            y @64 1 + while dup node @ptr height < do // see whether there is anything bad below us
+              2dup swap target node @ptr is_in_target lnot if
+                steps inc64
+              else
+                drop node @ptr height
+              end
+              1 +
+            end drop
+            steps @64 0 != if
+              4 steps !64 // up and out, back and in
+              y @64 steps swap inc64-by // we had to go up more than from top
+              dup cost steps @64 * ret swap inc64-by
+            end
           end
         end drop
         2 +
@@ -96,7 +117,7 @@ proc dump_node ptr in
   memory node sizeof(ptr) end
   node !ptr
   "Node, g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
-  0 while dup HEIGHT < do
+  0 while dup node @ptr height < do
     0 while dup WIDTH < do
       2dup node @ptr @Node.map[x][y] putc
       1 +
@@ -143,7 +164,7 @@ proc parse_input -- ptr in
   new_node node !ptr
   read_stdin_to_str @Str input !Str
   line input str-chop-line
-  0 while dup HEIGHT < do
+  0 while dup node @ptr height < do
     line input str-chop-line
     line str-chop-one-left
     0 while dup WIDTH < line ?str-empty lnot land do
@@ -206,9 +227,6 @@ proc heapify in
   end drop
 end
 
-proc is_clear int int ptr -- bool in @Node.map[x][y] '.' = end
-proc is_in_target int int ptr -- bool in memory t sizeof(int) end over t !64 @Node.map[x][y] target t @64 = end
-
 proc get_neighbours ptr ptr in
   memory list sizeof(ptr) end
   list !ptr
@@ -216,8 +234,11 @@ proc get_neighbours ptr ptr in
   node !ptr
   memory dst sizeof(ptr) end
   memory blocked sizeof(bool) end
+  memory blocked_above sizeof(bool) end
+  memory blocked_below sizeof(bool) end
   memory c sizeof(int) end
   memory y sizeof(int) end
+  memory y2 sizeof(int) end
   0 0 while dup WIDTH < do // hallway
     2dup node @ptr @Node.map[x][y]
     dup '.' != if
@@ -226,41 +247,57 @@ proc get_neighbours ptr ptr in
         0 over node @ptr is_clear lnot if true blocked !bool end
         1 -
       end 2drop
-      dup target 2 swap node @ptr is_clear
-      over target 2 swap node @ptr is_in_target lor
-      over target 1 swap node @ptr is_clear land
-      blocked @bool lnot land if
+      node @ptr height 1 - y2 !64 while y2 @64 1 > do
+        dup target y2 @64 swap node @ptr is_clear
+        over target y2 @64 swap node @ptr is_in_target lor
+        lnot blocked @bool lor blocked !bool
+        y2 dec64
+      end
+      dup target 1 swap node @ptr is_clear blocked @bool lnot land if
         // Can only move into a room if it is our dest and empty or only has our kind in it
         node @ptr copy_node dst !ptr
-        // y x c (abs(x-t)+1)*cost
-        2dup target - abs 1 + over cost * dst @ptr @Node.g + dst @ptr !Node.g
-        dup target 2 swap node @ptr is_clear if dup cost dst @ptr @Node.g + dst @ptr !Node.g 2 else 1 end
-        // dst_row
-        over target dst @ptr !Node.map[x][y]
+        2dup target - abs over cost * dst @ptr @Node.g + dst @ptr !Node.g
+        1 y2 !64 while y2 @64 node @ptr height < if dup target y2 @64 swap node @ptr is_clear else false end do y2 inc64 end y2 dec64
+        dup cost y2 @64 * dst @ptr @Node.g + dst @ptr !Node.g
+        dup target y2 @64 swap dst @ptr !Node.map[x][y]
         2dup '.' rot rot dst @ptr !Node.map[x][y]
         dst @ptr cast(int) list @ptr list_add
       else drop end
     else drop end
     1 +
   end 2drop
-  1 while dup HEIGHT < do // bottom two rows have holes
+  1 while dup node @ptr height < do // bottom two rows have holes
     dup y !64
     2 while dup 9 < do // column of hols
       2dup node @ptr @Node.map[x][y]
       dup '.' != if
-        false blocked !bool
-        y @64 2 = if over 1 swap node @ptr is_clear lnot if true blocked !bool end end
-        2dup target = y @64 1 = land over target 2 swap node @ptr is_clear land if
+        false blocked_below !bool
+        node @ptr height 1 - y2 !64 while y2 @64 0 > do
+          dup target dup y2 @64 swap node @ptr is_clear
+          swap y2 @64 swap node @ptr is_in_target lor
+          lnot blocked_below @bool lor blocked_below !bool
+          y2 dec64
+        end
+        false blocked_above !bool
+        y @64 1 - y2 !64 while y2 @64 0 > do
+          over y2 @64 swap node @ptr is_clear
+          lnot blocked_above @bool lor blocked_above !bool
+          y2 dec64
+        end
+        2dup target = blocked_below @bool lnot land if
           // We are already in the right column, need to move down
-          node @ptr copy_node dst !ptr
-          dup cost dst @ptr @Node.g + dst @ptr !Node.g
-          over 2 swap dst @ptr !Node.map[x][y]
-          2dup '.' rot rot dst @ptr !Node.map[x][y]
-          dst @ptr cast(int) list @ptr list_add
-        else blocked @bool lnot if*
+          y @64 1 + y2 !64 while y2 @64 HEIGHT < if dup target y2 @64 swap node @ptr is_clear else false end do y2 inc64 end y2 dec64
+          y2 @64 y @64 != if
+            node @ptr copy_node dst !ptr
+            dup cost y2 @64 * dst @ptr @Node.g + dst @ptr !Node.g
+            over y2 @64 swap dst @ptr !Node.map[x][y]
+            2dup '.' rot rot dst @ptr !Node.map[x][y]
+            dst @ptr cast(int) list @ptr list_add
+          else drop end
+        else blocked_above @bool lnot if*
           // Need to create many neighbours for all the possible hallway locations we could go
+          false blocked !bool
           c !8
-          // will go up 1 or two
           dup 1 - while dup 0 > do
             0 over node @ptr is_clear lnot if
               true blocked !bool
@@ -282,10 +319,10 @@ proc get_neighbours ptr ptr in
             dst @ptr cast(int) list @ptr list_add
           end
           false blocked !bool
-          dup 1 + while dup WIDTH < do
+          dup 1 + while dup WIDTH 1 - < do
             0 over node @ptr is_clear lnot if
               true blocked !bool
-              drop WIDTH
+              drop WIDTH 1 -
             else
               node @ptr copy_node dst !ptr
               2dup swap - y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
@@ -295,7 +332,7 @@ proc get_neighbours ptr ptr in
             end
             2 +
           end drop
-          blocked @bool lnot 0 WIDTH node @ptr is_clear land if
+          blocked @bool lnot 0 WIDTH 1 - node @ptr is_clear land if
             node @ptr copy_node dst !ptr
             WIDTH 1 - over - y @64 + c @8 cost * dst @ptr @Node.g + dst @ptr !Node.g
             0 WIDTH 1 - c @8 rot rot dst @ptr !Node.map[x][y]
@@ -335,8 +372,14 @@ proc solve ptr -- ptr in
   current @ptr cast(int) visited list_add
   while q @List.count 0 > do
     0 q list_get cast(ptr) current !ptr
+    current @ptr @Node.part2 if
+      "q size: " puts q @List.count putu ", visited size: " puts visited @List.count print
+      "Current node:\n" puts
+      current @ptr dump_node
+    end
     current @ptr is_solved if
       true solved !bool
+      0 visited !List.count
       0 q !List.count // break
     else
       q @List.count 1 > if
@@ -346,13 +389,16 @@ proc solve ptr -- ptr in
       end
       0 neighbours !List.count
       current @ptr neighbours get_neighbours
+    current @ptr @Node.part2 if "Neighbours:\n" puts end
       0 while dup neighbours @List.count < do
         dup neighbours list_get cast(ptr)
+    current @ptr @Node.part2 if dup dump_node end
         dup in_visited lnot if
           dup is_solved if
             true solved !bool
             current !ptr
             0 q !List.count
+            0 visited !List.count
             drop neighbours @List.count
           else
             dup cast(int) q list_add heapify
@@ -372,6 +418,34 @@ proc dump_path ptr in
   dump_node
 end
 
+proc add_part2 ptr -- ptr in
+  memory node sizeof(ptr) end
+  node !ptr
+  3 while dup 1 > do
+    0 while dup WIDTH < do
+      2dup 2dup node @ptr @Node.map[x][y] rot 2 + rot node @ptr !Node.map[x][y]
+      1 +
+    end drop
+    1 -
+  end drop
+"  #D#C#B#A#" line !Str
+  2 while dup 3 <= do
+    line str-chop-one-left
+    0 while dup WIDTH < line ?str-empty lnot land do
+      2dup node @ptr Node.map[x][y] line @Str.data @8 swap !8 line str-chop-one-left
+      1 +
+    end drop
+"  #D#B#A#C#" line !Str
+    1 +
+  end drop
+  true node @ptr !Node.part2
+  node @ptr
+end
+
 parse_input
+dup copy_node
 solve
 @Node.g print
+add_part2
+dup dump_node
+ solve @Node.g print
