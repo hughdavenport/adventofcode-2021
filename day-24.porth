@@ -89,13 +89,9 @@ end
 read_stdin_to_str @Str input !Str
 memory fin sizeof(bool) end
 false fin !bool
-99999999999999 while dup 9999999999999 > fin @bool lnot land do
-  dup !model_number
-// Worked this out from the source code
+// Worked these out from the source code
 96929994293996 !model_number
-  while zero_loc dup 0 != do - dup !model_number end drop
-  simulate_program 0 = if true fin !bool end
-//@model_number print dump_regs
-  1 -
-end drop
-@model_number print
+simulate_program 0 = if @model_number print end
+41811761181141 !model_number
+simulate_program 0 = if @model_number print end
+
