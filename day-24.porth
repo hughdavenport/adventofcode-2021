@@ -1,0 +1,101 @@
+include "helpers.porth"
+
+memory orig_input sizeof(Str) end
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+memory user_input sizeof(int) 14 * end
+memory regs sizeof(int) 4 * end
+
+proc dump_regs in
+  "REGS:\n" puts
+  "w: " puts regs 0 sizeof(int) * ptr+ @64 putd newline
+  "x: " puts regs 1 sizeof(int) * ptr+ @64 putd newline
+  "y: " puts regs 2 sizeof(int) * ptr+ @64 putd newline
+  "z: " puts regs 3 sizeof(int) * ptr+ @64 putd newline
+end
+
+proc simulate_program -- int in
+  memory cur_user_input sizeof(ptr) end user_input cur_user_input !ptr
+  sizeof(int) 4 * 0 regs memset drop
+  input @Str orig_input !Str
+  while len(input) 0 > do
+    line input str-chop-line
+    word line str-chop-word
+    word @Str "inp" streq if
+      cur_user_input @ptr @64 line @Str.data @8 'w' - sizeof(int) * regs +ptr !64
+      cur_user_input sizeof(int) inc64-by
+    else word @Str "add" streq if*
+      word line str-chop-word
+      word @Str.data @8 'w' - sizeof(int) * regs +ptr dup @64
+      line @Str try-parse-signed-int lnot if
+        drop line @Str.data @8 'w' - sizeof(int) * regs +ptr @64
+      end
+      + swap !64
+    else word @Str "mul" streq if*
+      word line str-chop-word
+      word @Str.data @8 'w' - sizeof(int) * regs +ptr dup @64
+      line @Str try-parse-signed-int lnot if
+        drop line @Str.data @8 'w' - sizeof(int) * regs +ptr @64
+      end
+      * swap !64
+    else word @Str "div" streq if*
+      word line str-chop-word
+      word @Str.data @8 'w' - sizeof(int) * regs +ptr dup @64
+      line @Str try-parse-signed-int lnot if
+        drop line @Str.data @8 'w' - sizeof(int) * regs +ptr @64
+      end
+      / swap !64
+    else word @Str "mod" streq if*
+      word line str-chop-word
+      word @Str.data @8 'w' - sizeof(int) * regs +ptr dup @64
+      line @Str try-parse-signed-int lnot if
+        drop line @Str.data @8 'w' - sizeof(int) * regs +ptr @64
+      end
+      % swap !64
+    else word @Str "eql" streq if*
+      word line str-chop-word
+      word @Str.data @8 'w' - sizeof(int) * regs +ptr dup @64
+      line @Str try-parse-signed-int lnot if
+        drop line @Str.data @8 'w' - sizeof(int) * regs +ptr @64
+      end
+      = cast(int) swap !64
+    end
+  end
+  orig_input @Str input !Str
+  'z' 'w' - sizeof(int) * regs +ptr @64
+end
+
+proc @model_number -- int in
+  0
+  0 while dup 14 < do dup user_input @a[i] rot 10 * + swap 1 + end drop
+end
+
+proc !model_number int in
+  13 while dup 0 >= do swap 10 divmod rot swap over user_input !a[i] 1 - end drop
+  drop
+end
+
+proc zero_loc -- int in
+  0
+  0 while dup 14 < do swap 10 * swap dup user_input @a[i] 0 = if swap 1 + swap end 1 + end drop
+end
+
+read_stdin_to_str @Str input !Str
+memory fin sizeof(bool) end
+false fin !bool
+99999999999999 while dup 9999999999999 > fin @bool lnot land do
+  dup !model_number
+// Worked this out from the source code
+96929994293996 !model_number
+  while zero_loc dup 0 != do - dup !model_number end drop
+  simulate_program 0 = if true fin !bool end
+//@model_number print dump_regs
+  1 -
+end drop
+@model_number print
