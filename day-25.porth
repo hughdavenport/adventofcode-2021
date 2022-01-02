@@ -1,0 +1,92 @@
+include "helpers.porth"
+
+memory input sizeof(Str) end
+proc len(input) -- int in input @Str.count end
+memory line sizeof(Str) end
+proc @line -- int ptr in line @Str end
+proc len(line) -- int in line @Str.count end
+memory word sizeof(Str) end
+proc @word -- int ptr in word @Str end
+proc len(word) -- int in word @Str.count end
+
+const N 256 end
+memory width sizeof(int) end
+memory height sizeof(int) end
+memory data sizeof(char) N N * * end
+
+proc data[x][y] int int -- ptr in
+  swap width @64 * + sizeof(char) * data +ptr
+end
+
+proc dump_data in
+  "DATA:\n" puts
+  0 while dup height @64 < do
+    width @64 over 0 data[x][y] puts
+    newline
+    1 +
+  end drop
+  newline
+end
+
+
+memory to_move sizeof(List) end
+sizeof(int) to_move list_init
+
+
+proc simulate -- bool in
+  false
+  0 to_move !List.count
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup 2dup data[x][y] @8 rot rot 1 + width @64 % data[x][y] @8
+      '.' = swap '>' = land if 2dup to_move list_add to_move list_add end
+      1 +
+    end drop
+    1 +
+  end drop
+  to_move @List.count 0 > if drop true end
+  0 while dup to_move @List.count < do
+    dup to_move list_get over 1 + to_move list_get swap
+    2dup 1 + width @64 % data[x][y] '>' swap !8 data[x][y] '.' swap !8
+    2 +
+  end drop
+  0 to_move !List.count
+  0 while dup height @64 < do
+    0 while dup width @64 < do
+      2dup 2dup data[x][y] @8 rot rot swap 1 + height @64 % swap data[x][y] @8
+      '.' = swap 'v' = land if 2dup to_move list_add to_move list_add end
+      1 +
+    end drop
+    1 +
+  end drop
+  to_move @List.count 0 > if drop true end
+  0 while dup to_move @List.count < do
+    dup to_move list_get over 1 + to_move list_get swap
+    2dup swap 1 + height @64 % swap data[x][y] 'v' swap !8 data[x][y] '.' swap !8
+    2 +
+  end drop
+end
+
+proc parse_input in
+  read_stdin_to_str @Str input !Str
+  0
+  while len(input) 0 > do
+    line input str-chop-line // skip til next line, save skipped line into line var
+    line @Str.count width !64
+    0 while len(line) 0 > do
+      2dup data[x][y] line @Str.data @8 swap !8
+      line str-chop-one-left
+      1 +
+    end drop
+    1 +
+  end
+  height !64
+end
+
+
+parse_input
+1 while simulate do
+//  dump_data
+  1 +
+end
+print
