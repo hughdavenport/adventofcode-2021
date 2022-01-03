@@ -2,6 +2,7 @@
 FAIL=0
 FAILED=()
 SIMULATE=0
+TIMEOUT=0
 
 # Colors for printing pass/fail
 GREEN=$(tput setaf 64)
@@ -31,13 +32,27 @@ test_input() {
   fi
   echo -n "Testing running against ${TYPE} input: "
   if [ -s "${INPUT_FILE}" ]; then
-    ${EXE} < "${INPUT_FILE}" | diff - "${OUTPUT_FILE}" > $DIFF_TMP
-    [ $? -eq 0 ] && pass || {
-      fail "${EXE} < ${INPUT_FILE}"
-      cat $DIFF_TMP
+    OUTPUT_TMP=$(mktemp)
+    timeout --foreground ${TIMEOUT} ${EXE} < "${INPUT_FILE}" > "${OUTPUT_TMP}"
+    RET=$?
+    [ $RET -eq 0 ] && {
+      cat "${OUTPUT_TMP}" | diff - "${OUTPUT_FILE}" > $DIFF_TMP
+      [ $? -eq 0 ] && pass || {
+        fail "${EXE} < ${INPUT_FILE}     # Diff"
+        cat $DIFF_TMP
+      }
+    } || {
+      [ $RET -eq 124 ] && {
+        fail "${EXE} < ${INPUT_FILE}     # Timeout"
+        echo "Timeout"
+      } || {
+        fail "${EXE} < ${INPUT_FILE}     # Ret $RET"
+        echo "Bad return $RET"
+      }
     }
+    rm "${OUTPUT_TMP}"
   else
-    fail "${EXE} # No input file"
+    fail "${EXE} < ${INPUT_FILE}     # No input file"
     echo "No input file"
   fi
   rm $DIFF_TMP
