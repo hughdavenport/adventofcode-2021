@@ -83,6 +83,14 @@ proc h ptr -- int in
             2 steps !64 // we have to get to the hallway and back
             rot dup while dup 2 >= do steps inc64 1 - end drop rot rot // bottom has to go up an extra space(s)
             2dup target - abs steps swap inc64-by // move to target col
+
+
+
+
+// We need to improve h, it is currently visiting over 10000 nodes which overflows list cap
+
+
+
             dup cost steps @64 * ret swap inc64-by
           // y x c
           else
@@ -97,6 +105,7 @@ proc h ptr -- int in
             end drop
             steps @64 0 != if
               steps 4 inc64-by // up and out, back and in
+              // we had - 1 here removing after debugging
               y @64 steps swap inc64-by // we had to go up more than from top
               dup cost steps @64 * ret swap inc64-by
             end
@@ -116,7 +125,7 @@ proc f ptr -- int in dup @Node.g swap h + end
 proc dump_node ptr in
   memory node sizeof(ptr) end
   node !ptr
-  "Node, (" puts node @ptr cast(int) putu "), g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
+  "Node, g=" puts node @ptr @Node.g putu ", h=" puts node @ptr h putu ", f=" puts node @ptr f print
   0 while dup node @ptr height < do
     0 while dup WIDTH < do
       2dup node @ptr @Node.map[x][y] putc
@@ -127,7 +136,7 @@ proc dump_node ptr in
   end drop
 end
 
-const MAX_NODES 100000 end
+const MAX_NODES 200000 end
 memory nodes sizeof(Node) MAX_NODES * end
 memory len(nodes) sizeof(int) end
 proc new_node -- ptr in
@@ -284,10 +293,10 @@ proc get_neighbours ptr ptr in
           lnot blocked_above @bool lor blocked_above !bool
           y2 dec64
         end
+        y @64 1 + y2 !64 while y2 @64 HEIGHT < if dup target y2 @64 swap node @ptr is_clear else false end do y2 inc64 end y2 dec64
         2dup target = blocked_below @bool lnot land if
-          // We are already in the right column, need to move down
-          y @64 1 + y2 !64 while y2 @64 HEIGHT < if dup target y2 @64 swap node @ptr is_clear else false end do y2 inc64 end y2 dec64
           y2 @64 y @64 != if
+            // We are already in the right column, need to move down
             node @ptr copy_node dst !ptr
             dup cost y2 @64 * dst @ptr @Node.g + dst @ptr !Node.g
             over y2 @64 swap dst @ptr !Node.map[x][y]
@@ -372,13 +381,9 @@ proc solve ptr -- ptr in
   current @ptr cast(int) visited list_add
   while q @List.count 0 > do
     0 q list_get cast(ptr) current !ptr
-//    current @ptr @Node.part2 current @ptr f 38000 > land if
-//      "q size: " puts q @List.count putu ", visited size: " puts visited @List.count print
-//      "Current node:\n" puts
-//      current @ptr dump_node
-//    end
     current @ptr is_solved if
       true solved !bool
+      visited list_free
       sizeof(ptr) visited list_init
       0 q !List.count // break
     else
@@ -387,12 +392,11 @@ proc solve ptr -- ptr in
       else
         0 q list_remove drop
       end
-      0 neighbours !List.count
+      neighbours list_free
+      sizeof(ptr) neighbours list_init
       current @ptr neighbours get_neighbours
-//    current @ptr @Node.part2 if "Neighbours:\n" puts end
       0 while dup neighbours @List.count < do
         dup neighbours list_get cast(ptr)
-//    current @ptr @Node.part2 if dup dump_node end
         dup in_visited lnot if
           dup is_solved if
             true solved !bool

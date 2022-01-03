@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 FAIL=0
 FAILED=()
 SIMULATE=0
@@ -48,11 +48,22 @@ test_inputs() {
   EXE="${1}"
   INPUT_PREFIX="${2}"
   OUTPUT_PREFIX="${3}"
-  [ -z "${4}" -o "${4}" = "example" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example"
+  TIMETMP=$(mktemp)
+  [ -z "${4}" -o "${4}" = "example" ] && {
+    { time test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example"; } 2>${TIMETMP}
+    cat ${TIMETMP} | tail -3 | head -1
+  }
   for I in `seq 2 99`; do
-    [ -f "${INPUT_PREFIX}.example-${I}" ] && [ -z "${4}" -o "${4}" = "example" -o "${4}" = "example-${I}" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example-${I}"
+    [ -f "${INPUT_PREFIX}.example-${I}" ] && [ -z "${4}" -o "${4}" = "example" -o "${4}" = "example-${I}" ] && {
+      { time test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "example-${I}"; } 2>${TIMETMP}
+      cat ${TIMETMP} | tail -3 | head -1
+    }
   done
-  [ -z "${4}" -o "${4}" = "actual" ] && test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "actual"
+  [ -z "${4}" -o "${4}" = "actual" ] && {
+    { time test_input "${EXE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "actual"; } 2>${TIMETMP}
+    cat ${TIMETMP} | tail -3 | head -1
+  }
+  rm ${TIMETMP}
 }
 
 PORTH="${HOME}/src/porth/porth"
@@ -69,25 +80,25 @@ for DAY in $(seq -w "${START}" "${END}"); do
   INPUT_PREFIX="inputs/day-${DAY}"
   OUTPUT_PREFIX="outputs/day-${DAY}"
   echo -n "Testing compiling ${PORTH_FILE} against porth.porth: "
-  ${PORTH} com -s "$PORTH_FILE"
-  if [ $? -eq 0 ]; then
+  rm ./output 2>/dev/null; ${PORTH} com -s "$PORTH_FILE"
+  if [ $? -eq 0 -a -x ./output ]; then
     pass
-    time test_inputs "./output" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    test_inputs "./output" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     [ $SIMULATE -eq 1 ] && {
       echo "Testing sim mode"
-      time test_inputs "${PORTH} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+      test_inputs "${PORTH} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     }
   else
     fail "${PORTH} com -s \"$PORTH_FILE\""
   fi
   echo -n "Testing compiling ${PORTH_FILE} against porth.py: "
-  ${PORTH_PY} com -s "$PORTH_FILE"
-  if [ $? -eq 0 ]; then
+  rm ./day-${DAY} 2>/dev/null; ${PORTH_PY} com -s "$PORTH_FILE"
+  if [ $? -eq 0 -a -x ./day-${DAY} ]; then
     pass
-    time test_inputs "./day-${DAY}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+    test_inputs "./day-${DAY}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     [ $SIMULATE -eq 1 ] && {
       echo "Testing sim mode"
-      time test_inputs "${PORTH_PY} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
+      test_inputs "${PORTH_PY} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
     }
   else
     fail "${PORTH_PY} com -s \"$PORTH_FILE\""
