@@ -55,3 +55,12 @@ list list_dump
 list list_dump
 0 list list_remove print
 list list_dump
+
+"Freeing list\n" puts
+list list_free
+"Freed\n" puts
+memory list3 sizeof(List) end
+sizeof(int) list3 list_init
+"Free'd list is reused?\n" puts
+// -2 because we removed some
+list @List.data sizeof(int) 2 * ptr- list3 @List.data ptr= print
