@@ -1,0 +1,107 @@
+include "std.porth"
+include "malloc.porth"
+
+sizeof(Malloc) print
+"Before any malloc\n" puts
+dump_malloc
+
+"malloc(5*sizeof(int))\n" puts
+memory a sizeof(ptr) end
+5 sizeof(int) * malloc a !ptr
+a @ptr print
+dump_malloc
+0 while dup 5 < do
+  a @ptr over sizeof(int) * ptr+ 0 swap !64
+  1 +
+end drop
+a @ptr 2 sizeof(int) * ptr+ 42 swap !64
+a @ptr 4 sizeof(int) * ptr+ 1337 swap !64
+0 while dup 5 < do
+  a @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+dump_malloc
+"malloc(15*sizeof(int))\n" puts
+memory b sizeof(ptr) end
+15 sizeof(int) * malloc b !ptr
+b @ptr print
+dump_malloc
+0 while dup 15 < do
+  b @ptr over sizeof(int) * ptr+ 0 swap !64
+  1 +
+end drop
+b @ptr 2 sizeof(int) * ptr+ 1234 swap !64
+b @ptr 4 sizeof(int) * ptr+ 5678 swap !64
+0 while dup 15 < do
+  b @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+"Original:\n" puts
+0 while dup 5 < do
+  a @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+dump_malloc
+
+"Freeing first\n" puts
+a @ptr free
+dump_malloc
+"Freeing second\n" puts
+b @ptr free
+dump_malloc
+
+"Allocating 3\n" puts
+5 sizeof(int) * malloc
+5 sizeof(int) * malloc
+5 sizeof(int) * malloc
+dump_malloc
+"freeing middle\n" puts
+swap free
+dump_malloc
+"then start\n" puts
+swap free
+dump_malloc
+"then end\n" puts
+free
+dump_malloc
+"fin\n" puts
+
+5 sizeof(int) * malloc
+a !ptr
+a @ptr print
+0 while dup 5 < do
+  a @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+15 sizeof(int) * malloc
+a @ptr free
+b !ptr
+b @ptr print
+0 while dup 15 < do
+  b @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+b @ptr free
+15 sizeof(int) calloc
+a !ptr
+a @ptr print
+0 while dup 5 < do
+  a @ptr over sizeof(int) * ptr+ @64 print
+  1 +
+end drop
+dump_malloc
+"Resizing down\n" puts
+sizeof(int) a @ptr realloc a !ptr
+dump_malloc
+"Resizing up with no blocks\n" puts
+sizeof(int) 10 * a @ptr realloc a !ptr
+dump_malloc
+"Creating a block\n" puts
+sizeof(int) malloc b !ptr
+dump_malloc
+"Resizing up with a block\n" puts
+sizeof(int) 15 * a @ptr realloc a !ptr
+dump_malloc
+"Freeing all\n" puts
+a @ptr free b @ptr free
+dump_malloc

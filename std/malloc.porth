@@ -1,0 +1,180 @@
+const MALLOC_MAX_SIZE 1024 1024 * end
+memory malloc_base MALLOC_MAX_SIZE end
+proc malloc_end -- ptr in malloc_base MALLOC_MAX_SIZE ptr+ end
+
+const offsetof(Malloc.length) sizeof(int) offset end
+const offsetof(Malloc.free) sizeof(bool) offset end
+const offsetof(Malloc.next) sizeof(ptr) offset end
+const offsetof(Malloc.prev) sizeof(ptr) offset end
+const sizeof(Malloc) reset end
+
+proc Malloc.length ptr -- ptr in offsetof(Malloc.length) ptr+ end
+proc Malloc.free ptr -- ptr in offsetof(Malloc.free) ptr+ end
+proc Malloc.prev ptr -- ptr in offsetof(Malloc.prev) ptr+ end
+proc Malloc.next ptr -- ptr in offsetof(Malloc.next) ptr+ end
+proc @Malloc.length ptr -- int in Malloc.length @int end
+proc !Malloc.length int ptr in Malloc.length !int end
+proc @Malloc.free ptr -- bool in Malloc.free @bool end
+proc !Malloc.free bool ptr in Malloc.free !bool end
+proc @Malloc.next ptr -- ptr in Malloc.next @ptr end
+proc !Malloc.next ptr ptr in Malloc.next !ptr end
+proc @Malloc.prev ptr -- ptr in Malloc.prev @ptr end
+proc !Malloc.prev ptr ptr in Malloc.prev !ptr end
+
+proc malloc_init in
+  MALLOC_MAX_SIZE sizeof(Malloc) - malloc_base !Malloc.length
+  true malloc_base !Malloc.free
+  NULL malloc_base !Malloc.next
+  NULL malloc_base !Malloc.prev
+end
+malloc_init
+
+proc dump_malloc_entry ptr in
+  "----- MALLOC ENTRY -----\n" puts
+  "Base: " puts dup cast(int) putu "\n" puts
+  "Addr: " puts dup sizeof(Malloc) ptr+ cast(int) putu "\n" puts
+  "Length: " puts dup @Malloc.length putu "\n" puts
+  "Free: " puts dup @Malloc.free if "true" else "false" end puts "\n" puts
+  "Next: " puts dup @Malloc.next cast(int) putu "\n" puts
+  "Prev: " puts dup @Malloc.prev cast(int) putu "\n" puts
+  drop
+end
+
+proc dump_malloc in
+  "MALLOC_DUMP_START\n" puts
+  malloc_base while dup malloc_end ptr< over NULL ptr!= land do
+    dup dump_malloc_entry
+    dup @Malloc.next swap drop
+  end drop
+  "\n" puts
+end
+
+proc malloc_in_range ptr -- bool in
+  dup malloc_base ptr< lnot over malloc_end ptr< land swap drop
+end
+
+proc malloc int -- ptr in
+  dup 0 = if
+    drop NULL
+  else
+    malloc_base while
+      dup malloc_in_range if
+        over over @Malloc.length >
+        over @Malloc.free lnot lor
+      else false end
+        do
+      dup @Malloc.next swap drop
+    end
+    dup malloc_in_range lnot if
+      "ERROR: Could not malloc " eputs over putu " bytes\n" eputs
+      drop drop NULL
+    else
+      // len ret
+      false over !Malloc.free
+      over over +ptr sizeof(Malloc) ptr+ dup malloc_in_range if
+        // len ret next
+        over over !Malloc.prev
+        true over !Malloc.free
+        over @Malloc.length sizeof(Malloc) - over !Malloc.length
+        over @Malloc.next over !Malloc.next
+        dup @Malloc.next malloc_in_range if
+          dup dup @Malloc.next !Malloc.prev
+        end
+        over !Malloc.next
+      else
+        drop NULL over !Malloc.next
+      end
+      // len ret
+      swap over !Malloc.length
+      dup @Malloc.next malloc_in_range if
+        dup @Malloc.next @Malloc.length over @Malloc.length - over @Malloc.next !Malloc.length
+      end
+      sizeof(Malloc) ptr+
+    end
+  end
+end
+
+proc free ptr in
+  dup NULL ptr!= if
+    sizeof(Malloc) ptr-
+    true over !Malloc.free
+    dup @Malloc.next malloc_in_range if
+      dup @Malloc.next @Malloc.free if
+        dup @Malloc.next @Malloc.length over @Malloc.length + sizeof(Malloc) + over !Malloc.length
+        dup @Malloc.next @Malloc.next over !Malloc.next
+        dup @Malloc.next malloc_in_range if
+          dup dup @Malloc.next !Malloc.prev
+        end
+      end
+    end
+    dup @Malloc.prev malloc_in_range if
+      dup @Malloc.prev @Malloc.free if
+        dup @Malloc.prev @Malloc.length over @Malloc.length + sizeof(Malloc) + over @Malloc.prev !Malloc.length
+        dup @Malloc.next over @Malloc.prev !Malloc.next
+        dup @Malloc.next malloc_in_range if
+          dup @Malloc.prev over @Malloc.next !Malloc.prev
+        end
+      end
+    end
+  end
+  drop
+end
+
+proc calloc int int -- ptr in * 0 over malloc memset end
+
+proc realloc int ptr -- ptr in
+  dup NULL ptr= if
+    drop malloc
+  else over 0 = if*
+    free drop NULL
+  else
+    // len ret
+    sizeof(Malloc) ptr-
+    // len entry
+    over over @Malloc.length < if
+      over over @Malloc.length swap - sizeof(Malloc) >= if
+        over sizeof(Malloc) + over +ptr
+        dup malloc_in_range if
+          // len entry next
+          over @Malloc.next over !Malloc.next
+          over !Malloc.next
+          // len entry
+          over over @Malloc.length swap - sizeof(Malloc) - over @Malloc.next !Malloc.length
+          dup @Malloc.next @Malloc.next malloc_in_range if
+            dup @Malloc.next dup @Malloc.next !Malloc.prev
+          end
+          dup dup @Malloc.next !Malloc.prev
+          dup @Malloc.next sizeof(Malloc) ptr+ free // may consolodate with next next
+        else drop end
+        over over !Malloc.length
+      else
+        // smaller than malloc entry size, don't decrease
+      end
+      sizeof(Malloc) ptr+ swap drop
+    else
+      // len entry
+      dup @Malloc.next malloc_in_range if
+        // len entry
+        over over dup @Malloc.next @Malloc.free
+        // len entry nextfree len curlen+nextlen+size
+        rot rot dup @Malloc.length swap @Malloc.next @Malloc.length + sizeof(Malloc) + <= land if
+          // next is free and can fit
+          dup @Malloc.length over @Malloc.next @Malloc.length + sizeof(Malloc) + over !Malloc.length
+          dup @Malloc.next @Malloc.next over !Malloc.next
+          dup @Malloc.next malloc_in_range if
+            dup dup @Malloc.next !Malloc.prev
+          end
+          sizeof(Malloc) ptr+ realloc // We may be able to shrink this new block
+        else
+          // move this to a new place
+          sizeof(Malloc) ptr+
+          swap over over malloc memcpy swap free
+        end
+      else
+        // move this to a new place
+        sizeof(Malloc) ptr+
+        swap over over malloc memcpy swap free
+      end
+    end
+  end
+end
