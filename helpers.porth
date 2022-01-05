@@ -252,6 +252,7 @@ proc abs int -- int in
 end
 
 // My custom std
+include "std/malloc.porth"
 include "std/stack.porth"
 include "std/list.porth"
 include "std/map.porth"
