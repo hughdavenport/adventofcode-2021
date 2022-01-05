@@ -60,7 +60,17 @@ list list_dump
 list list_free
 "Freed\n" puts
 memory list3 sizeof(List) end
+dump_malloc
 sizeof(int) list3 list_init
 "Free'd list is reused?\n" puts
-// -2 because we removed some
-list @List.data sizeof(int) 2 * ptr- list3 @List.data ptr= print
+list @List.data list3 @List.data ptr= print
+dump_malloc
+sizeof(int) list list_init
+list @List.data print
+dump_malloc
+0 while dup 15 < do
+  dup list list_add
+  1 +
+end drop
+list list_dump
+dump_malloc
