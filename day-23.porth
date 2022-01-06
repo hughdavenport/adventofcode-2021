@@ -1,3 +1,4 @@
+// This could be improved by hash set on visited
 include "helpers.porth"
 
 memory input sizeof(Str) end
@@ -16,7 +17,6 @@ const sizeof(Node.map) sizeof(Node.map.row) HEIGHT * end
 const offsetof(Node.map) sizeof(Node.map) offset end
 const offsetof(Node.g) sizeof(int) offset end
 const offsetof(Node.cached_h) sizeof(int) offset end
-const offsetof(Node.free) sizeof(bool) offset end
 const offsetof(Node.part2) sizeof(bool) offset end
 const offsetof(Node.prev) sizeof(ptr) offset end
 const sizeof(Node) reset end
@@ -30,9 +30,6 @@ proc !Node.g int ptr in Node.g !64 end
 proc Node.cached_h ptr -- ptr in offsetof(Node.cached_h) ptr+ end
 proc @Node.cached_h ptr -- int in Node.cached_h @64 end
 proc !Node.cached_h int ptr in Node.cached_h !64 end
-proc Node.free ptr -- ptr in offsetof(Node.free) ptr+ end
-proc @Node.free ptr -- bool in Node.free @bool end
-proc !Node.free bool ptr in Node.free !bool end
 proc Node.part2 ptr -- ptr in offsetof(Node.part2) ptr+ end
 proc @Node.part2 ptr -- bool in Node.part2 @bool end
 proc !Node.part2 bool ptr in Node.part2 !bool end
@@ -136,28 +133,8 @@ proc dump_node ptr in
   end drop
 end
 
-const MAX_NODES 200000 end
-memory nodes sizeof(Node) MAX_NODES * end
-memory len(nodes) sizeof(int) end
 proc new_node -- ptr in
-  NULL
-  0 while dup len(nodes) @64 < do
-    dup sizeof(Node) * nodes +ptr dup @Node.free if
-      dup true swap !Node.free
-      dup 0 swap !Node.g
-      swap drop swap drop len(nodes) @64
-    else drop end
-    1 +
-  end drop
-  dup NULL ptr= if
-    drop
-    len(nodes) @64 MAX_NODES = if
-      "Overflow in new_node\n" eputs
-      1 exit
-    end
-    len(nodes) @64 sizeof(Node) * nodes +ptr
-    len(nodes) inc64
-  end
+  sizeof(Node) malloc
 end
 
 proc copy_node ptr -- ptr in
@@ -408,7 +385,7 @@ proc solve ptr -- ptr in
             dup cast(int) q list_add heapify
             cast(int) visited list_add
           end
-        else true swap !Node.free end
+        else free end
         1 +
       end drop
     end

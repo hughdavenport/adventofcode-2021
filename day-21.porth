@@ -1,3 +1,4 @@
+// This could be improved with dynamic programming
 include "helpers.porth"
 
 memory input sizeof(Str) end
@@ -29,38 +30,16 @@ memory starting_game sizeof(ptr) end
 const offsetof(Game.players) sizeof(Player) 2 * offset end
 const offsetof(Game.multiplier) sizeof(int) offset end
 const offsetof(Game.current_player) 1 offset end
-const offsetof(Game.freed) 1 offset end
 const sizeof(Game) reset end
 
 proc Game.players ptr -- ptr in offsetof(Game.players) ptr+ end
 proc Game.current_player ptr -- ptr in offsetof(Game.current_player) ptr+ end
 proc Game.multiplier ptr -- ptr in offsetof(Game.multiplier) ptr+ end
-proc Game.freed ptr -- ptr in offsetof(Game.freed) ptr+ end
 proc Game.player ptr -- ptr in dup Game.players over Game.current_player @8 sizeof(Player) * ptr+ swap drop end
 proc Game.switch_players ptr in dup Game.current_player @8 1 + 2 % swap Game.current_player !8 end
 
-const MAX_GAMES 1233693952 sizeof(Game) divmod drop end
-memory games sizeof(Game) MAX_GAMES * end
-memory len(games) sizeof(int) end
-0 len(games) !64
-
 proc new_game -- ptr in
-  memory ret sizeof(ptr) end
-  NULL ret !ptr
-  0 while dup len(games) @64 < ret @ptr NULL ptr= land do
-    dup sizeof(Game) * games swap ptr+ dup Game.freed @8 1 = if
-      dup ret !ptr
-    end drop
-    1 +
-  end drop
-  ret @ptr dup NULL ptr= if
-    len(games) @64 MAX_GAMES = if
-      "Overflow in new_game\n" puts
-      1 exit
-    end
-    drop len(games) @64 sizeof(Game) * games swap ptr+
-    len(games) inc64
-  end
+  sizeof(Game) malloc
 end
 
 proc copy_game ptr -- ptr in
@@ -157,14 +136,14 @@ proc roll_dice_quantum int int ptr in // multiplier diceroll*3 game
   dup Game.player Player.score over Game.player @Player.loc inc64-by
   dup Game.player @Player.score 21 >= if
     wins over Game.current_player @8 sizeof(int) * ptr+ over Game.multiplier @64 inc64-by
-    1 over Game.freed !8
+    dup free
   else
     dup Game.switch_players
     false swap
     0 while dup next_current_games @List.count < do
       over over next_current_games list_get cast(ptr) game= if
         over over next_current_games list_get cast(ptr) Game.multiplier swap Game.multiplier @64 inc64-by
-        over 1 swap Game.freed !8
+        over free
         drop swap drop true swap next_current_games @List.count
       end
       1 +

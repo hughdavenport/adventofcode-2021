@@ -1,6 +1,6 @@
 const MALLOC_CHECK_VALIDITY false end
 const MALLOC_MAX_CAP 1024 1024 * 1024 * end
-const MALLOC_FREELIST_CAP 1024 end
+const MALLOC_FREELIST_CAP 1024 1024 * end
 memory _malloc_base MALLOC_MAX_CAP end
 inline proc _malloc_end -- ptr in _malloc_base MALLOC_MAX_CAP ptr+ end
 
