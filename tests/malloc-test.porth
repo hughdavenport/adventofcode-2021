@@ -98,3 +98,4 @@ a @ptr free
 b @ptr print
 b @ptr free
 dump_malloc
+"end\n" puts

@@ -1,6 +1,17 @@
-const MALLOC_MAX_SIZE 1024 1024 * end
-memory malloc_base MALLOC_MAX_SIZE end
-proc malloc_end -- ptr in malloc_base MALLOC_MAX_SIZE ptr+ end
+const MALLOC_CHECK_VALIDITY false end
+const MALLOC_MAX_CAP 1024 1024 * 1024 * end
+const MALLOC_FREELIST_CAP 1024 end
+memory _malloc_base MALLOC_MAX_CAP end
+inline proc _malloc_end -- ptr in _malloc_base MALLOC_MAX_CAP ptr+ end
+
+memory _malloc_freelist sizeof(ptr) MALLOC_FREELIST_CAP * end
+memory _malloc_freelist_lookup sizeof(ptr) MALLOC_FREELIST_CAP * end
+memory _malloc_freelist_size sizeof(int) end
+inline proc _malloc_freelist_end -- ptr in _malloc_freelist _malloc_freelist_size @int sizeof(ptr) * ptr+ end
+inline proc _malloc_freelist_idx int -- ptr in
+  MALLOC_FREELIST_CAP % sizeof(ptr) * _malloc_freelist_lookup +ptr
+end
+
 
 const offsetof(Malloc.length) sizeof(int) offset end
 const offsetof(Malloc.free) sizeof(bool) offset end
@@ -21,11 +32,14 @@ inline proc !Malloc.next ptr ptr in Malloc.next !ptr end
 inline proc @Malloc.prev ptr -- ptr in Malloc.prev @ptr end
 inline proc !Malloc.prev ptr ptr in Malloc.prev !ptr end
 
-proc _malloc_init in
-  MALLOC_MAX_SIZE sizeof(Malloc) - malloc_base !Malloc.length
-  true malloc_base !Malloc.free
-  NULL malloc_base !Malloc.next
-  NULL malloc_base !Malloc.prev
+inline proc _malloc_init in
+  MALLOC_MAX_CAP sizeof(Malloc) - _malloc_base !Malloc.length
+  true _malloc_base !Malloc.free
+  NULL _malloc_base !Malloc.next
+  NULL _malloc_base !Malloc.prev
+  _malloc_base _malloc_freelist !ptr
+  1 _malloc_freelist_size !int
+  _malloc_freelist _malloc_base cast(int) _malloc_freelist_idx !ptr
 end
 _malloc_init
 
@@ -41,94 +55,249 @@ proc dump_malloc_entry ptr in
   end drop
 end
 
-proc _malloc_in_range ptr -- bool in
-  dup malloc_base ptr< lnot over malloc_end ptr< land swap drop
+inline proc _malloc_in_range ptr -- bool in
+  dup _malloc_base ptr< lnot over _malloc_end ptr< land swap drop
+end
+
+proc dump_freelist in
+  "MALLOC_FREELIST\n" puts
+  _malloc_freelist while dup _malloc_freelist_end ptr< do
+    dup print
+    dup @ptr dump_malloc_entry
+    sizeof(ptr) ptr+
+  end drop
+  "MALLOC_FREELIST_END\n\n" puts
+end
+
+proc dump_freelist_lookup in
+  "MALLOC_FREELIST_LOOKUP\n" puts
+  0 while dup MALLOC_FREELIST_CAP < do
+    dup sizeof(ptr) * _malloc_freelist_lookup +ptr
+    dup @ptr NULL ptr!= if
+      "Idx: " puts over putu " points to " puts dup cast(int) putu " -> " puts dup @int putu " -> " puts dup @ptr @ptr print
+      dup @ptr @int _malloc_freelist_idx over ptr!= if "Collided, should be " puts dup @ptr @int _malloc_freelist_idx print end
+      dup @ptr @ptr dump_malloc_entry
+    end drop
+    1 +
+  end drop
+  "MALLOC_FREELIST_LOOKUP_END\n" puts
 end
 
 proc dump_malloc in
   "MALLOC_DUMP_START\n" puts
-  malloc_base while dup _malloc_in_range do
+  _malloc_base while dup _malloc_in_range do
     dup dump_malloc_entry
     @Malloc.next
   end drop
   "MALLOC_DUMP_END\n\n" puts
+  dump_freelist
+  dump_freelist_lookup
 end
 
-proc _malloc_new_next_entry int ptr -- ptr in +ptr sizeof(Malloc) ptr+ end
+inline proc _malloc_new_next_entry int ptr -- ptr in +ptr sizeof(Malloc) ptr+ end
 
 proc _malloc_entry_is_valid ptr -- bool in
   true swap
-  dup @Malloc.length 0 < if
-    swap drop false swap
-    "neg length\n" puts
-  end
-  dup @Malloc.length over +ptr _malloc_in_range lnot if
-    swap drop false swap
-    "length too long\n" puts
-  end
-  dup @Malloc.next _malloc_in_range lnot over @Malloc.next NULL ptr!= land if
-    swap drop false swap
-    "next is invalid\n" puts
-  end
-  dup @Malloc.next over ptr< over @Malloc.next NULL ptr!= land if
-    swap drop false swap
-    "next is is behind\n" puts
-  end
-  dup @Malloc.next _malloc_in_range if
-    dup @Malloc.length over _malloc_new_next_entry over @Malloc.next ptr!= if
+  MALLOC_CHECK_VALIDITY if
+    dup @Malloc.length 0 < if
       swap drop false swap
-      "Next pointer doesn't match length\n" puts
+      "neg length\n" puts
     end
-    dup @Malloc.next @Malloc.prev over ptr!= if
+    dup @Malloc.length over +ptr _malloc_in_range lnot if
       swap drop false swap
-      "Next->prev doesn't match current\n" puts
+      "length too long\n" puts
     end
-  end
-  dup @Malloc.prev _malloc_in_range if
-    dup @Malloc.prev @Malloc.next over ptr!= if
+    dup @Malloc.next _malloc_in_range lnot over @Malloc.next NULL ptr!= land if
       swap drop false swap
-      "Prev->next doesn't match current\n" puts
+      "next is invalid\n" puts
     end
+    dup @Malloc.next over ptr< over @Malloc.next NULL ptr!= land if
+      swap drop false swap
+      "next is is behind\n" puts
+    end
+    dup @Malloc.next _malloc_in_range if
+      dup @Malloc.length over _malloc_new_next_entry over @Malloc.next ptr!= if
+        swap drop false swap
+        "Next pointer doesn't match length\n" puts
+      end
+      dup @Malloc.next @Malloc.prev over ptr!= if
+        swap drop false swap
+        "Next->prev doesn't match current\n" puts
+      end
+    end
+    dup @Malloc.prev _malloc_in_range if
+      dup @Malloc.prev @Malloc.next over ptr!= if
+        swap drop false swap
+        "Prev->next doesn't match current\n" puts
+      end
+    end
+    dup @Malloc.prev _malloc_in_range lnot over @Malloc.prev NULL ptr!= land if
+      swap drop false swap
+      "prev is invalid\n" puts
+    end
+    dup over @Malloc.prev ptr< over @Malloc.prev NULL ptr!= land if
+      swap drop false swap
+      "prev is is infront\n" puts
+    end
+    over lnot if dup dump_malloc_entry end
   end
-  dup @Malloc.prev _malloc_in_range lnot over @Malloc.prev NULL ptr!= land if
-    swap drop false swap
-    "prev is invalid\n" puts
-  end
-  dup over @Malloc.prev ptr< over @Malloc.prev NULL ptr!= land if
-    swap drop false swap
-    "prev is is infront\n" puts
-  end
-  over lnot if dup dump_malloc_entry end
   drop
 end
 
 proc _malloc_is_valid -- bool in
   true
-  malloc_base @Malloc.prev NULL ptr!= if
-    drop false
-    "First entry has a prev set\n" puts
+  MALLOC_CHECK_VALIDITY if
+    _malloc_base @Malloc.prev NULL ptr!= if
+      drop false
+      "First entry has a prev set\n" puts
+    end
+    _malloc_base while dup _malloc_in_range do
+      swap drop dup _malloc_entry_is_valid swap
+      over if @Malloc.next else drop NULL end
+    end
+    dup NULL ptr!= if
+      swap drop false swap
+      "Last entry has a next set, or it overflowed\n" puts
+    end
+    drop
   end
-  malloc_base while dup _malloc_in_range do
-    swap drop dup _malloc_entry_is_valid swap
-    over if @Malloc.next else drop NULL end
+end
+
+proc _malloc_freelist_lookup_get ptr -- ptr in
+  memory p sizeof(ptr) end p !ptr
+  // check collisions, best case it will be at idx 0
+  NULL
+  0 while dup MALLOC_FREELIST_CAP < do
+    dup p @int + _malloc_freelist_idx
+    // This pointer should point to entry in freelist, or NULL
+    // TODO: check pointer valid?
+    dup NULL ptr= if
+      // Nothing found
+      drop drop MALLOC_FREELIST_CAP
+    else dup @ptr @ptr p @ptr ptr= if*
+      // Found it
+      @ptr
+      rot drop swap drop MALLOC_FREELIST_CAP
+    else
+      // Collided, go to next one
+      drop
+    end
+    1 +
+  end drop
+end
+
+proc _malloc_freelist_lookup_add ptr ptr in // loc p
+  memory p sizeof(ptr) end p !ptr
+  NULL
+  // check collisions, best case it will be at idx 0
+  0 while dup MALLOC_FREELIST_CAP < do
+    dup p @int + _malloc_freelist_idx
+    dup @ptr NULL ptr= if
+      // Nothing found, store
+      rot drop swap drop MALLOC_FREELIST_CAP
+    else
+      // Collided, go to next one
+      drop
+    end
+    1 +
+  end drop
+  dup NULL ptr= if
+    "ERROR: out of space in _malloc_freelist_lookup_add\n" eputs
+    1 exit
   end
-  dup NULL ptr!= if
-    swap drop false swap
-    "Last entry has a next set, or it overflowed\n" puts
+  !ptr
+end
+
+proc _malloc_freelist_lookup_remove ptr in
+  memory p sizeof(ptr) end p !ptr
+  // check collisions, best case it will be at idx 0
+  0 while dup MALLOC_FREELIST_CAP < do
+    dup p @int + _malloc_freelist_idx
+    // This pointer should point to entry in freelist, or NULL
+    // TODO: check pointer valid?
+    dup @ptr NULL ptr= if
+      "ERROR: bad lookup in _malloc_freelist_lookup_remove\n" eputs
+      1 exit
+      drop
+    else dup @ptr @ptr p @ptr ptr= if*
+      // Found it
+      NULL over !ptr
+      // Need to go forward more until we get the next NULL, and rehash
+      over 1 + while dup MALLOC_FREELIST_CAP < do
+        dup p @int + _malloc_freelist_idx
+        dup @ptr NULL ptr= if
+          // Can stop searching now
+          drop drop MALLOC_FREELIST_CAP
+        else dup @ptr @int _malloc_freelist_idx over ptr= if*
+          // This is in the right place, skip
+          drop
+        else
+          // We need to remove and rehash
+          dup @ptr over @ptr @ptr
+          rot NULL swap !ptr
+          _malloc_freelist_lookup_add
+        end
+        1 +
+      end drop
+      drop drop MALLOC_FREELIST_CAP
+    else
+      // Collided, go to next one
+      drop
+    end
+    1 +
+  end drop
+end
+
+proc _malloc_add_to_freelist ptr in
+  _malloc_freelist_size @int MALLOC_FREELIST_CAP = if
+    "ERROR: overflow in _malloc_add_to_freelist\n" eputs
+    1 exit
   end
+  dup _malloc_freelist_end !ptr
+  _malloc_freelist_end while
+    dup sizeof(ptr) ptr- _malloc_freelist ptr< if
+      false
+    else
+      dup sizeof(ptr) ptr- @ptr @Malloc.length over @ptr @Malloc.length >
+    end
+  do
+    dup sizeof(ptr) ptr- @ptr _malloc_freelist_lookup_remove
+    dup sizeof(ptr) ptr- @ptr
+    over dup @ptr swap sizeof(ptr) ptr- !ptr
+    over !ptr
+    dup dup @ptr _malloc_freelist_lookup_add
+    sizeof(ptr) ptr-
+  end
+  swap _malloc_freelist_lookup_add
+  _malloc_freelist_size inc64
+end
+
+proc _malloc_remove_from_freelist ptr in
+  dup _malloc_freelist_lookup_get
+  dup NULL ptr= if
+    "ERROR: bad lookup in _malloc_remove_from_freelist\n" eputs
+    1 exit
+  end
+  dup @ptr _malloc_freelist_lookup_remove
+  while dup sizeof(ptr) ptr+ _malloc_freelist_end ptr< do
+    dup sizeof(ptr) ptr+ @ptr over !ptr
+    dup @ptr _malloc_freelist_lookup_remove
+    dup over @ptr _malloc_freelist_lookup_add
+    sizeof(ptr) ptr+
+  end drop
+  _malloc_freelist_size dec64
   drop
 end
 
 proc _malloc_next_free_entry_with_size int -- ptr in
-  memory len sizeof(int) end len !int
-  malloc_base while
-    dup _malloc_in_range if
-      len @int sizeof(Malloc) + over @Malloc.length >
-      over @Malloc.free lnot lor
+  _malloc_freelist while
+    dup _malloc_freelist_end ptr< if
+      over sizeof(Malloc) + over @ptr @Malloc.length >
+      over @ptr @Malloc.free lnot lor
     else false end
       do
-    @Malloc.next
-  end
+    sizeof(ptr) ptr+
+  end @ptr swap drop
 end
 
 proc _malloc_split_entry_into_new_next int ptr in
@@ -157,6 +326,7 @@ proc _malloc_split_entry_into_new_next int ptr in
     NULL                                                 current @ptr !Malloc.next
   end
   len @int                                               current @ptr !Malloc.length
+  next @ptr _malloc_add_to_freelist
   current @ptr _malloc_entry_is_valid lnot if
     "ERROR: _malloc_split_entry_into_new_next corrupted current entry\n" eputs
     1 exit
@@ -170,45 +340,53 @@ proc _malloc_split_entry_into_new_next int ptr in
 end
 
 proc _malloc_join_to_next_free_entry ptr in
-  memory entry sizeof(ptr) end entry !ptr
-  entry @ptr @Malloc.next _malloc_in_range lnot if
+  dup @Malloc.next _malloc_in_range lnot if
     "ERROR: _malloc_join_to_next_free_entry expects a valid next entry\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.free lnot if
+  dup @Malloc.free lnot if
     "ERROR: _malloc_join_to_next_free_entry expects entry to be freed\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.next @Malloc.free lnot if
+  dup @Malloc.next @Malloc.free lnot if
     "ERROR: _malloc_join_to_next_free_entry expects next entry to be freed\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.next @Malloc.length entry @ptr @Malloc.length + sizeof(Malloc) + entry @ptr !Malloc.length
-  entry @ptr @Malloc.next @Malloc.next entry @ptr !Malloc.next
-  entry @ptr @Malloc.next _malloc_in_range if
-    entry @ptr entry @ptr @Malloc.next !Malloc.prev
+  dup @Malloc.next _malloc_remove_from_freelist
+  dup @Malloc.next @Malloc.length over @Malloc.length + sizeof(Malloc) + over !Malloc.length
+  dup @Malloc.next @Malloc.next over !Malloc.next
+  dup @Malloc.next _malloc_in_range if
+    dup over @Malloc.next !Malloc.prev
   end
+  // FIXME: it would be more efficient to sort up
+  dup _malloc_remove_from_freelist
+  dup _malloc_add_to_freelist
+  drop
 end
 
 proc _malloc_join_to_prev_free_entry ptr in
-  memory entry sizeof(ptr) end entry !ptr
-  entry @ptr @Malloc.prev _malloc_in_range lnot if
+  dup @Malloc.prev _malloc_in_range lnot if
     "ERROR: _malloc_join_to_prev_free_entry expects a valid prev entry\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.free lnot if
+  dup @Malloc.free lnot if
     "ERROR: _malloc_join_to_prev_free_entry expects entry to be freed\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.prev @Malloc.free lnot if
+  dup @Malloc.prev @Malloc.free lnot if
     "ERROR: _malloc_join_to_prev_free_entry expects prev entry to be freed\n" eputs
     1 exit
   end
-  entry @ptr @Malloc.prev @Malloc.length entry @ptr @Malloc.length + sizeof(Malloc) + entry @ptr @Malloc.prev !Malloc.length
-  entry @ptr @Malloc.next entry @ptr @Malloc.prev !Malloc.next
-  entry @ptr @Malloc.next _malloc_in_range if
-    entry @ptr @Malloc.prev entry @ptr @Malloc.next !Malloc.prev
+  dup _malloc_remove_from_freelist
+  dup @Malloc.prev @Malloc.length over @Malloc.length + sizeof(Malloc) + over @Malloc.prev !Malloc.length
+  dup @Malloc.next over @Malloc.prev !Malloc.next
+  dup @Malloc.next _malloc_in_range if
+    dup @Malloc.prev over @Malloc.next !Malloc.prev
   end
+  // FIXME: it would be more efficient to sort up
+  dup @Malloc.prev _malloc_remove_from_freelist
+  dup @Malloc.prev _malloc_add_to_freelist
+  drop
 end
 
 proc _malloc_join_to_next_free_if_possible ptr in
@@ -243,6 +421,7 @@ proc malloc int -- ptr in
       NULL ret !ptr
     else
       false ret @ptr !Malloc.free
+      ret @ptr _malloc_remove_from_freelist
       len @int ret @ptr _malloc_split_entry_into_new_next
       ret sizeof(Malloc) inc64-by
     end
@@ -267,6 +446,7 @@ proc free ptr in
       1 exit
     end
     true entry @ptr !Malloc.free
+    entry @ptr _malloc_add_to_freelist
     entry @ptr _malloc_join_to_next_free_if_possible
     entry @ptr _malloc_join_to_prev_free_if_possible
   end
@@ -276,7 +456,7 @@ proc free ptr in
   end
 end
 
-proc calloc int int -- ptr in * 0 over malloc memset end
+inline proc calloc int int -- ptr in * 0 over malloc memset end
 
 proc realloc int ptr -- ptr in
   memory data sizeof(ptr) end data !ptr
@@ -295,11 +475,14 @@ proc realloc int ptr -- ptr in
     entry @ptr @Malloc.length old_len !int
     len @int sizeof(Malloc) + entry @ptr @Malloc.length < if
       len @int entry @ptr _malloc_split_entry_into_new_next
+      entry @ptr @Malloc.next _malloc_join_to_next_free_if_possible
       data @ptr
     else
       true entry @ptr !Malloc.free
+      entry @ptr _malloc_add_to_freelist
       entry @ptr _malloc_join_to_next_free_if_possible
       false entry @ptr !Malloc.free
+      entry @ptr _malloc_remove_from_freelist
       len @int sizeof(Malloc) + entry @ptr @Malloc.length < if
         len @int entry @ptr _malloc_split_entry_into_new_next
         data @ptr
