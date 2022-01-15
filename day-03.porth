@@ -46,12 +46,14 @@ proc calculate_oxygen_and_co2 in
   end drop // stk:
 end
 
-read_input
+proc main in
+  read_input
 
-// Print part 1
-calculate_gamma_and_epsilon
-gamma @64 epsilon @64 * print
+  // Print part 1
+  calculate_gamma_and_epsilon
+  gamma @64 epsilon @64 * print
 
-// Print part 2
-calculate_oxygen_and_co2
-oxy @64 co2 @64 * print
+  // Print part 2
+  calculate_oxygen_and_co2
+  oxy @64 co2 @64 * print
+end

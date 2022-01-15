@@ -9,36 +9,39 @@ memory input sizeof(Str) end
 memory line sizeof(Str) end
 proc @line -- int ptr in line @Str end
 proc len(line) -- int in line @Str.count end
-read_stdin_to_str @Str input !Str
 
-0 // stk: last
-while line input str-chop-line len(line) 0 > do
-  @line try-parse-int if // stk: last num
-    swap // stk: num last
-    dup 0 != if // There is a previous measurement
-      2dup > if counter inc64 end // PART 1
+proc main in
+  read_stdin_to_str @Str input !Str
 
-      2dup + last2 @64 // stk: num last (sum-last2) last2
-      dup 0 = if 2drop // There have not been 3 measurements yet to fill window
-      else
-        + window_sum @64 // stk: num last sum last_sum
-        dup 0 = if drop // There has only been 1 window so far
-        else // There is a previous window sum
-          over < if window_counter inc64 end
+  0 // stk: last
+  while line input str-chop-line len(line) 0 > do
+    @line try-parse-int if // stk: last num
+      swap // stk: num last
+      dup 0 != if // There is a previous measurement
+        2dup > if counter inc64 end // PART 1
+
+        2dup + last2 @64 // stk: num last (sum-last2) last2
+        dup 0 = if 2drop // There have not been 3 measurements yet to fill window
+        else
+          + window_sum @64 // stk: num last sum last_sum
+          dup 0 = if drop // There has only been 1 window so far
+          else // There is a previous window sum
+            over < if window_counter inc64 end
+          end
+          // stk: num last sum
+          window_sum !64
         end
-        // stk: num last sum
-        window_sum !64
+        // END PART 2
+        // stk: num last
       end
-      // END PART 2
-      // stk: num last
+    else
+      here puts " couldn't parse int: " puts @line puts
     end
-  else
-    here puts " couldn't parse int: " puts @line puts
-  end
-  // stk: num last (-> last2 last)
-  last2 !64 // stk: last
-end drop // stk:
+    // stk: num last (-> last2 last)
+    last2 !64 // stk: last
+  end drop // stk:
 
-// Print out the values for part 1 and 2
-counter @64 print
-window_counter @64 print
+  // Print out the values for part 1 and 2
+  counter @64 print
+  window_counter @64 print
+end

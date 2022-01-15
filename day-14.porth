@@ -99,68 +99,70 @@ proc dump_mappings in
   end drop
 end
 
-read_stdin_to_str @Str input !Str
-line input str-chop-line
-while len(line) 1 > do
-  line @Str.data @8 'A' -
-  line str-chop-one-left
-  line @Str.data @8 'A' -
-  dup last_char !64
-  2dup idx dup pairs @a[i] 1 + swap pairs !a[i]
-  2drop
-end
+proc main in
+  read_stdin_to_str @Str input !Str
+  line input str-chop-line
+  while len(line) 1 > do
+    line @Str.data @8 'A' -
+    line str-chop-one-left
+    line @Str.data @8 'A' -
+    dup last_char !64
+    2dup idx dup pairs @a[i] 1 + swap pairs !a[i]
+    2drop
+  end
 
-line input str-chop-line // swallow blank line
+  line input str-chop-line // swallow blank line
 
-while len(input) 0 > do
-  input @Str.data @8 'A' -
-  input str-chop-one-left
-  input @Str.data @8 'A' -
-  input str-chop-one-left
-  idx
-  0 while dup 4 < do input str-chop-one-left 1 + end drop // the " -> "
-  input @Str.data @8 'A' -
-  input str-chop-one-left
-  swap mappings !a[i]
-  input str-chop-one-left // the newline char
-end
+  while len(input) 0 > do
+    input @Str.data @8 'A' -
+    input str-chop-one-left
+    input @Str.data @8 'A' -
+    input str-chop-one-left
+    idx
+    0 while dup 4 < do input str-chop-one-left 1 + end drop // the " -> "
+    input @Str.data @8 'A' -
+    input str-chop-one-left
+    swap mappings !a[i]
+    input str-chop-one-left // the newline char
+  end
 
-//dump_mappings
-//dump_pairs
+  //dump_mappings
+  //dump_pairs
 
-memory copy sizeof(int) ALPHA_SIZE ALPHA_SIZE * * end
-memory x sizeof(int) end
-memory y sizeof(int) end
-0 while dup 40 < do
-  sizeof(int) ALPHA_SIZE ALPHA_SIZE * * pairs copy memcpy drop
-  0 y !64
-  while y @64 ALPHA_SIZE < do
-    0 x !64
-    while x @64 ALPHA_SIZE < do
-      y @64 x @64 idx // idx
-      dup copy @a[i] // idx pairs[idx]=p
-      dup 0 > if
-        over mappings @a[i] // idx p mappings[idx]=m
-//        rot dup "At index " puts putu rot dup " with cur of " puts putu rot dup " - " puts y @64 'A' + putc x @64 'A' + putc " -> " puts 'A' + putc newline
-        // x,m and m,y should increment by p
-        swap over x @64 idx dup rot swap over swap pairs @a[i] + rot pairs !a[i] swap
-        swap over y @64 swap idx dup rot swap over swap pairs @a[i] + rot pairs !a[i] swap
-        // x,y should should decrement by p
-        swap rot 2dup dup pairs @a[i] rot - swap pairs !a[i] swap rot
-        drop
-      end 2drop
-      x inc64
+  memory copy sizeof(int) ALPHA_SIZE ALPHA_SIZE * * end
+  memory x sizeof(int) end
+  memory y sizeof(int) end
+  0 while dup 40 < do
+    sizeof(int) ALPHA_SIZE ALPHA_SIZE * * pairs copy memcpy drop
+    0 y !64
+    while y @64 ALPHA_SIZE < do
+      0 x !64
+      while x @64 ALPHA_SIZE < do
+        y @64 x @64 idx // idx
+        dup copy @a[i] // idx pairs[idx]=p
+        dup 0 > if
+          over mappings @a[i] // idx p mappings[idx]=m
+  //        rot dup "At index " puts putu rot dup " with cur of " puts putu rot dup " - " puts y @64 'A' + putc x @64 'A' + putc " -> " puts 'A' + putc newline
+          // x,m and m,y should increment by p
+          swap over x @64 idx dup rot swap over swap pairs @a[i] + rot pairs !a[i] swap
+          swap over y @64 swap idx dup rot swap over swap pairs @a[i] + rot pairs !a[i] swap
+          // x,y should should decrement by p
+          swap rot 2dup dup pairs @a[i] rot - swap pairs !a[i] swap rot
+          drop
+        end 2drop
+        x inc64
+      end
+      y inc64
     end
-    y inc64
-  end
-//  dump_pairs
+  //  dump_pairs
 
-//  "After step " puts dup 1 + putu " the length is " puts count_pairs print
-  1 +
-  dup 10 = if
-    solution print
+  //  "After step " puts dup 1 + putu " the length is " puts count_pairs print
+    1 +
+    dup 10 = if
+      solution print
+    end
   end
+  //"After step " puts dup putu " the length is " puts count_pairs print
+  drop
+  solution print
 end
-//"After step " puts dup putu " the length is " puts count_pairs print
-drop
-solution print

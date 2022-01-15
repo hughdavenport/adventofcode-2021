@@ -30,7 +30,6 @@ end
 
 
 memory to_move sizeof(List) end
-sizeof(int) to_move list_init
 
 
 proc simulate -- bool in
@@ -84,9 +83,12 @@ proc parse_input in
 end
 
 
-parse_input
-1 while simulate do
-//  dump_data
-  1 +
+proc main in
+  sizeof(int) to_move list_init
+  parse_input
+  1 while simulate do
+  //  dump_data
+    1 +
+  end
+  print
 end
-print

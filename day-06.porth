@@ -45,18 +45,21 @@ memory input sizeof(Str) end
 memory digit sizeof(Str) end
 proc @digit -- int ptr in digit @Str end
 proc len(digit) -- int in digit @Str.count end
-read_stdin_to_str @Str input !Str
 
-while ',' digit input str-chop-by-delim len(digit) 0 > do
-  @digit try-parse-int drop add_number
+proc main in
+  read_stdin_to_str @Str input !Str
+
+  while ',' digit input str-chop-by-delim len(digit) 0 > do
+    @digit try-parse-int drop add_number
+  end
+  0 while dup 80 < do
+    simulate_day
+    1 +
+  end
+  get_count print
+  while dup 256 < do
+    simulate_day
+    1 +
+  end drop
+  get_count print
 end
-0 while dup 80 < do
-  simulate_day
-  1 +
-end
-get_count print
-while dup 256 < do
-  simulate_day
-  1 +
-end drop
-get_count print

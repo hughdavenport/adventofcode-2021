@@ -8,69 +8,72 @@ proc len(line) -- int in line @Str.count end
 proc *line -- int in line @Str.data @8 end
 
 memory stack sizeof(Stack) end
-stack stack_init
 
 memory list sizeof(List) end
-sizeof(int) list list_init
 
-// ()  40  41      3 points, then 1 point
-// []  91  93     57 points, then 2 points
-// {} 123 125   1197 points, then 3 points
-// <>  60  62  25137 points, then 4 points
+proc main in
+  stack stack_init
+  sizeof(int) list list_init
 
-read_stdin_to_str @Str input !Str
-0 // stk: acc
-while len(input) 0 > do
-  line input str-chop-line
-  while len(line) 0 > do
-    *line line str-chop-one-left // stk: acc c
-    dup 91 =
-    over 123 = lor
-    over 60 = lor if
-      2 + stack stack_push
-    else dup 40 = if*
-      1 + stack stack_push
-    else dup stack stack_pop != if* // Popping
-      swap
-           over  41 = if      3
-      else over  93 = if*    57
-      else over 125 = if*  1197
-      else over  62 = if* 25137
+  // ()  40  41      3 points, then 1 point
+  // []  91  93     57 points, then 2 points
+  // {} 123 125   1197 points, then 3 points
+  // <>  60  62  25137 points, then 4 points
+
+  read_stdin_to_str @Str input !Str
+  0 // stk: acc
+  while len(input) 0 > do
+    line input str-chop-line
+    while len(line) 0 > do
+      *line line str-chop-one-left // stk: acc c
+      dup 91 =
+      over 123 = lor
+      over 60 = lor if
+        2 + stack stack_push
+      else dup 40 = if*
+        1 + stack stack_push
+      else dup stack stack_pop != if* // Popping
+        swap
+             over  41 = if      3
+        else over  93 = if*    57
+        else over 125 = if*  1197
+        else over  62 = if* 25137
+        else
+          here puts " Unknown char: " puts 1 line @Str.data 1 ptr- puts " (" puts over putu ")\n" puts
+          0
+        end
+  //      here puts " Found mismatch, adding " puts dup print
+        + swap drop // stk: acc
+        0 line !Str.count // break
+        while stack stack_empty? lnot do stack stack_pop drop end
       else
-        here puts " Unknown char: " puts 1 line @Str.data 1 ptr- puts " (" puts over putu ")\n" puts
-        0
-      end
-//      here puts " Found mismatch, adding " puts dup print
-      + swap drop // stk: acc
-      0 line !Str.count // break
-      while stack stack_empty? lnot do stack stack_pop drop end
-    else
-      // It matched the pop
-      drop
-    end // stk: acc
-  end
-  // check for incomplete lines
-
-  stack stack_empty? lnot if
-    0 // stk: acc1 acc2
-    while stack stack_empty? lnot do
-      stack stack_pop
-           // a1 a2 pop 1
-           dup  41 = if  1
-      else dup  93 = if* 2
-      else dup 125 = if* 3
-      else dup  62 = if* 4
-      else
-        here puts " Unknown char: " puts 1 line @Str.data 1 ptr- puts " (" puts over putu ")\n" puts
-        0
-      end // stk: acc1 acc2 pop score
-      rot 5 * + swap drop // stk: acc1 acc2
+        // It matched the pop
+        drop
+      end // stk: acc
     end
-    list list_add // stk: acc
+    // check for incomplete lines
+
+    stack stack_empty? lnot if
+      0 // stk: acc1 acc2
+      while stack stack_empty? lnot do
+        stack stack_pop
+             // a1 a2 pop 1
+             dup  41 = if  1
+        else dup  93 = if* 2
+        else dup 125 = if* 3
+        else dup  62 = if* 4
+        else
+          here puts " Unknown char: " puts 1 line @Str.data 1 ptr- puts " (" puts over putu ")\n" puts
+          0
+        end // stk: acc1 acc2 pop score
+        rot 5 * + swap drop // stk: acc1 acc2
+      end
+      list list_add // stk: acc
+    end
   end
+  // Part 1
+  print
+  list list_sort
+  // Part 2
+  list @List.count 2 / list list_get print
 end
-// Part 1
-print
-list list_sort
-// Part 2
-list @List.count 2 / list list_get print

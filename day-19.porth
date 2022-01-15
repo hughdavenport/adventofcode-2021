@@ -393,8 +393,6 @@ end
 
 memory diff_l sizeof(List) end
 memory counts sizeof(List) end
-sizeof(ptr) diff_l list_init
-sizeof(int) counts list_init
 proc common_diff ptr ptr ptr -- ptr int in
   memory s1 sizeof(ptr) end
   memory s2 sizeof(ptr) end
@@ -549,10 +547,14 @@ proc dump_scanners in
   end drop
 end
 
-parse_input
-//dump_scanners
-solve print
-dump_scanners
-// 455 is too high
-// 635 also too high
-// 623 also too high
+proc main in
+  sizeof(ptr) diff_l list_init
+  sizeof(int) counts list_init
+  parse_input
+  //dump_scanners
+  solve print
+  dump_scanners
+  // 455 is too high
+  // 635 also too high
+  // 623 also too high
+end

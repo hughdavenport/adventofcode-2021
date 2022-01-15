@@ -22,7 +22,6 @@ proc !Player.loc int ptr in Player.loc !64 end
 
 memory players sizeof(Player) 2 * end
 memory current_player sizeof(int) end
-0 current_player !64
 proc player -- ptr in players current_player @64 sizeof(Player) * ptr+ end
 proc switch_players in current_player @64 1 + 2 % current_player !64 end
 
@@ -127,7 +126,6 @@ proc game= ptr ptr -- bool in
 end
 
 memory current_games sizeof(List) end
-sizeof(ptr) current_games list_init
 memory next_current_games sizeof(List) end
 memory wins sizeof(int) 2 * end
 proc roll_dice_quantum int int ptr in // multiplier diceroll*3 game
@@ -178,6 +176,10 @@ proc solve_quantum -- int in
 end
 
 
-parse_input
-solve print
-solve_quantum print
+proc main in
+  0 current_player !64
+  sizeof(ptr) current_games list_init
+  parse_input
+  solve print
+  solve_quantum print
+end

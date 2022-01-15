@@ -12,12 +12,9 @@ proc len(word) -- int in word @Str.count end
 memory enhancement sizeof(Str) end
 memory images sizeof(List) 2 * end
 memory current_image sizeof(int) end
-0 current_image !64
 proc image -- ptr in images current_image @64 sizeof(List) * ptr+ end
 proc next_image -- ptr in images current_image @64 1 + 2 % sizeof(List) * ptr+ end
 proc switch_images in current_image @64 1 + 2 % current_image !64 end
-sizeof(ptr) image list_init
-sizeof(ptr) next_image list_init
 proc i[x][y] int int ptr -- int in // y x i
   rot swap list_get cast(ptr) list_get
 end
@@ -179,14 +176,19 @@ proc count_image -- int in
   ret @64
 end
 
-parse_input
-0 while dup 2 < do
-  simulate
-  1 +
+proc main in
+  0 current_image !64
+  sizeof(ptr) image list_init
+  sizeof(ptr) next_image list_init
+  parse_input
+  0 while dup 2 < do
+    simulate
+    1 +
+  end
+  count_image print
+  while dup 50 < do
+    simulate
+    1 +
+  end drop
+  count_image print
 end
-count_image print
-while dup 50 < do
-  simulate
-  1 +
-end drop
-count_image print

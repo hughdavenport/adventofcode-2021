@@ -86,12 +86,13 @@ proc zero_loc -- int in
   0 while dup 14 < do swap 10 * swap dup user_input @a[i] 0 = if swap 1 + swap end 1 + end drop
 end
 
-read_stdin_to_str @Str input !Str
-memory fin sizeof(bool) end
-false fin !bool
-// Worked these out from the source code
-96929994293996 !model_number
-simulate_program 0 = if @model_number print end
-41811761181141 !model_number
-simulate_program 0 = if @model_number print end
-
+proc main in
+  read_stdin_to_str @Str input !Str
+  memory fin sizeof(bool) end
+  false fin !bool
+  // Worked these out from the source code
+  96929994293996 !model_number
+  simulate_program 0 = if @model_number print end
+  41811761181141 !model_number
+  simulate_program 0 = if @model_number print end
+end

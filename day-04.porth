@@ -1,33 +1,39 @@
 include "day-04-procs.porth"
 
-read_numbers
-while read_board do end
+proc main in
+  boards p !ptr
+  sizeof(int) numbers list_init
+  read_stdin_to_str @Str input !Str
 
-0 while dup numbers @List.count < do // for each number, stk: num_idx
-  dup numbers list_get // stk: num_idx num
+  read_numbers
+  while read_board do end
 
-  boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do // For each cell on each board, stk: num_idx num cell_p
-    swap over @64 // stk: num_idx cell_p num cell
-    over = if // We found a number that was called
-      over sizeof(int) swap +ptr true swap !bool // Mark this cell as called
-    end // stk: num_idx cell_p num
-    swap BOARD_CELL_SIZE swap +ptr // Go to next cell (may be on diff board), stk: num_idx num cell_p
-  end drop // stk: num_idx num
+  0 while dup numbers @List.count < do // for each number, stk: num_idx
+    dup numbers list_get // stk: num_idx num
 
-  0 while dup len(boards) @64 < do // For each board, stk: num_idx num board_idx
-    dup is_bingo over sizeof(bool) * bingos +ptr @bool lnot land if // We found a bingo
-      dup get_score // stk: num_idx num board_idx score
-      rot dup rot * // stk: num_idx board_idx num result
-      result @64 0 = if dup print end result !64 // Print first time (part 1), save each time for later getting last (part 2)
-      swap // stk: num_idx num board_idx
-      true over sizeof(bool) * bingos +ptr !bool
-// part 2 wants the last board to win, so keep going
-//      drop drop drop
-//      numbers @List.count 0 len(boards) @64 // break
-    end
-    1 + // stk: num_idx num board_idx
-  end drop drop // stk: num_idx
-  1 + // stk: num_idx
-end drop // stk:
-// Print out part 2 (the last result)
-result @64 print
+    boards while dup len(boards) @64 BOARD_SIZE BOARD_CELL_SIZE * * boards +ptr ptr< do // For each cell on each board, stk: num_idx num cell_p
+      swap over @64 // stk: num_idx cell_p num cell
+      over = if // We found a number that was called
+        over sizeof(int) swap +ptr true swap !bool // Mark this cell as called
+      end // stk: num_idx cell_p num
+      swap BOARD_CELL_SIZE swap +ptr // Go to next cell (may be on diff board), stk: num_idx num cell_p
+    end drop // stk: num_idx num
+
+    0 while dup len(boards) @64 < do // For each board, stk: num_idx num board_idx
+      dup is_bingo over sizeof(bool) * bingos +ptr @bool lnot land if // We found a bingo
+        dup get_score // stk: num_idx num board_idx score
+        rot dup rot * // stk: num_idx board_idx num result
+        result @64 0 = if dup print end result !64 // Print first time (part 1), save each time for later getting last (part 2)
+        swap // stk: num_idx num board_idx
+        true over sizeof(bool) * bingos +ptr !bool
+  // part 2 wants the last board to win, so keep going
+  //      drop drop drop
+  //      numbers @List.count 0 len(boards) @64 // break
+      end
+      1 + // stk: num_idx num board_idx
+    end drop drop // stk: num_idx
+    1 + // stk: num_idx
+  end drop // stk:
+  // Print out part 2 (the last result)
+  result @64 print
+end

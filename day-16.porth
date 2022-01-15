@@ -3,9 +3,7 @@ include "helpers.porth"
 memory input sizeof(Str) end
 proc len(input) -- int in input @Str.count end
 memory bits sizeof(List) end
-sizeof(int) bits list_init
 memory bits_read sizeof(int) end
-0 bits_read !64
 
 proc dump_bits in
   "Read so far: " puts bits_read @64 putu ", " puts
@@ -58,7 +56,6 @@ proc read_literal -- int in
 end
 
 memory indent sizeof(int) end
-0 indent !64
 proc print_indent in
   0 while dup indent @64 < do
     "  " puts
@@ -66,7 +63,6 @@ proc print_indent in
   end drop
 end
 memory version_sum sizeof(int) end
-0 version_sum !64
 proc read_packet -- int in
   memory version sizeof(int) end
   memory type sizeof(int) end
@@ -138,8 +134,14 @@ proc read_packet -- int in
   end
 end
 
-read_stdin_to_str @Str input !Str
-read_packet
-// dump_bits
-version_sum @64 print
-print
+proc main in
+  sizeof(int) bits list_init
+  0 bits_read !64
+  0 indent !64
+  0 version_sum !64
+  read_stdin_to_str @Str input !Str
+  read_packet
+  // dump_bits
+  version_sum @64 print
+  print
+end

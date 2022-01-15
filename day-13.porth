@@ -88,18 +88,20 @@ proc fold in
   end
 end
 
-read_stdin_to_str @Str input !Str
-while line input str-chop-line len(line) 0 > do
-  ',' word line str-chop-by-delim
-  word @Str try-parse-int drop line @Str try-parse-int drop // x y
-  2dup 1 + max_y @64 max max_y !64 1 + max_x @64 max max_x !64
-  idx true cast(int) swap data !a[i]
-end
-//dump_data
-fold
-//dump_data
-size print
-while len(input) 0 > do
+proc main in
+  read_stdin_to_str @Str input !Str
+  while line input str-chop-line len(line) 0 > do
+    ',' word line str-chop-by-delim
+    word @Str try-parse-int drop line @Str try-parse-int drop // x y
+    2dup 1 + max_y @64 max max_y !64 1 + max_x @64 max max_x !64
+    idx true cast(int) swap data !a[i]
+  end
+  //dump_data
   fold
+  //dump_data
+  size print
+  while len(input) 0 > do
+    fold
+  end
+  dump_data
 end
-dump_data

@@ -19,7 +19,6 @@ proc len(word) -- int in word @Str.count end
 memory digit sizeof(Str) end
 proc @digit -- int ptr in digit @Str end
 proc len(digit) -- int in digit @Str.count end
-read_stdin_to_str @Str input !Str
 
 proc set_line in
   word line str-chop-word
@@ -103,23 +102,26 @@ proc dump-board in
   end drop
 end
 
-while line input str-chop-line len(line) 0 > do
-  set_line
+proc main in
+  read_stdin_to_str @Str input !Str
+  while line input str-chop-line len(line) 0 > do
+    set_line
+  end
+  DEBUG if dump-board end
+  0
+  // sum
+  N N * while dup 0 > do
+    // sum cell
+    dup @board[i] 2 >= if swap 1 + swap end
+    1 -
+  end drop
+  print
+  0
+  // sum
+  N N * while dup 0 > do
+    // sum cell
+    dup @board[i] over diagonals @a[i] + 2 >= if swap 1 + swap end
+    1 -
+  end drop
+  print
 end
-DEBUG if dump-board end
-0
-// sum
-N N * while dup 0 > do
-  // sum cell
-  dup @board[i] 2 >= if swap 1 + swap end
-  1 -
-end drop
-print
-0
-// sum
-N N * while dup 0 > do
-  // sum cell
-  dup @board[i] over diagonals @a[i] + 2 >= if swap 1 + swap end
-  1 -
-end drop
-print

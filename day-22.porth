@@ -158,7 +158,6 @@ proc range_overlaps ptr ptr -- ptr bool in
 end
 
 memory ons sizeof(List) end
-sizeof(ptr) ons list_init
 
 proc dump_ons in
   "Currently on: \n" puts
@@ -178,7 +177,6 @@ proc count_ranges -- int in
 end
 
 memory indent sizeof(int) end
-0 1 - indent !int
 proc print_indent in 0 while dup indent @64 < do "  " puts 1 + end drop end
 
 proc turn_on_range ptr -- in
@@ -310,6 +308,10 @@ proc count_data -- int in
 end
 
 
-parse_input
-count_data print
-count_ranges print
+proc main in
+  sizeof(ptr) ons list_init
+  0 1 - indent !int
+  parse_input
+  count_data print
+  count_ranges print
+end

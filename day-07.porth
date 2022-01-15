@@ -1,7 +1,6 @@
 include "helpers.porth"
 
 memory numbers sizeof(List) end
-sizeof(int) numbers list_init
 memory fuel sizeof(int) end
 
 proc numbers_min_max -- int int in
@@ -45,38 +44,42 @@ memory input sizeof(Str) end
 memory digit sizeof(Str) end
 proc @digit -- int ptr in digit @Str end
 proc len(digit) -- int in digit @Str.count end
-read_stdin_to_str @Str input !Str
 
-while ',' digit input str-chop-by-delim len(digit) 0 > do
-  @digit try-parse-int drop numbers list_add
+proc main in
+  sizeof(int) numbers list_init
+  read_stdin_to_str @Str input !Str
+
+  while ',' digit input str-chop-by-delim len(digit) 0 > do
+    @digit try-parse-int drop numbers list_add
+  end
+
+  numbers_min_max // stk: min max
+  2dup - abs numbers @List.count * fuel !64 // Save worst case, stk: min max
+  while 2dup <= do // Loop from min to max, stk: idx max
+    over calculate_fuel_part1 // stk: idx max fuel
+    dup fuel @64 < if fuel !64 else drop end // stk: idx max
+    swap 1 + swap // stk: idx max
+  end 2drop // stk:
+  fuel @64 print
+
+  // Part 2, I think the optimal alignment will be round(avg(numbers)
+  0 // stk: sum
+  0 while dup numbers @List.count < do // stk: sum idx
+    dup numbers list_get // stk: sum idx num
+    rot + swap // stk: sum idx
+    1 +
+  end drop // stk: sum
+  // Sum for my input is 466571, len is 1000, avg is 466.571
+  numbers @List.count divmod 2 * numbers @List.count > if 1 + end // stk: target
+  calculate_fuel_part2
+  // Gets too high on submission, use it as a high value for doing brute force search
+  fuel !64
+  numbers_min_max while 2dup <= do // Loop from min to max, stk: idx max
+    over calculate_fuel_part2 // stk: idx max fuel
+    dup fuel @64 < if fuel !64 else drop end // stk: idx max
+    swap 1 + swap // stk: idx max
+  end 2drop // stk:
+  fuel @64 print
+  // best is at target 466 (which is not avg rounded)
+  // avg for example is 4.9, which *should* be rounded to 5
 end
-
-numbers_min_max // stk: min max
-2dup - abs numbers @List.count * fuel !64 // Save worst case, stk: min max
-while 2dup <= do // Loop from min to max, stk: idx max
-  over calculate_fuel_part1 // stk: idx max fuel
-  dup fuel @64 < if fuel !64 else drop end // stk: idx max
-  swap 1 + swap // stk: idx max
-end 2drop // stk:
-fuel @64 print
-
-// Part 2, I think the optimal alignment will be round(avg(numbers)
-0 // stk: sum
-0 while dup numbers @List.count < do // stk: sum idx
-  dup numbers list_get // stk: sum idx num
-  rot + swap // stk: sum idx
-  1 +
-end drop // stk: sum
-// Sum for my input is 466571, len is 1000, avg is 466.571
-numbers @List.count divmod 2 * numbers @List.count > if 1 + end // stk: target
-calculate_fuel_part2
-// Gets too high on submission, use it as a high value for doing brute force search
-fuel !64
-numbers_min_max while 2dup <= do // Loop from min to max, stk: idx max
-  over calculate_fuel_part2 // stk: idx max fuel
-  dup fuel @64 < if fuel !64 else drop end // stk: idx max
-  swap 1 + swap // stk: idx max
-end 2drop // stk:
-fuel @64 print
-// best is at target 466 (which is not avg rounded)
-// avg for example is 4.9, which *should* be rounded to 5

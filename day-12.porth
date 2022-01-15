@@ -72,15 +72,6 @@ proc add_neighbours ptr ptr in // Will add both neighbours as each other
   c1 @ptr cast(int) c2 @ptr Cave.neighbours list_add
 end
 
-read_stdin_to_str @Str input !Str
-while len(input) 0 > do
-  line input str-chop-line
-  '-' word line str-chop-by-delim
-  word @Str find_cave
-  line @Str find_cave
-  add_neighbours
-end
-
 memory indent sizeof(int) end
 proc print_indent in 0 while dup indent @64 < do " " puts 1 + end drop end
 
@@ -120,8 +111,19 @@ indent dec64
   ret @64
 end
 
-//dump_caves
-true part2_used !bool // Ignore the part 2 for now
-"start" find_cave find_path print
-false part2_used !bool
-"start" find_cave find_path print
+proc main in
+  read_stdin_to_str @Str input !Str
+  while len(input) 0 > do
+    line input str-chop-line
+    '-' word line str-chop-by-delim
+    word @Str find_cave
+    line @Str find_cave
+    add_neighbours
+  end
+
+  //dump_caves
+  true part2_used !bool // Ignore the part 2 for now
+  "start" find_cave find_path print
+  false part2_used !bool
+  "start" find_cave find_path print
+end

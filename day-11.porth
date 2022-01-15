@@ -123,18 +123,6 @@ proc simulate -- int in // flashes
   end drop
 end
 
-read_input
-//dump_data
-0 // stk: acc
-0 while dup 100 < do // stk: acc idx
-  swap simulate + swap
-//  "Iteration: " puts dup 1 + print
-//  dump_data
-  1 +
-end drop
-print
-
-// Part 2, assume it wasn't reached in first 100
 proc is_synchronized -- bool in
   true
   0 while over over N N * < land do
@@ -144,8 +132,23 @@ proc is_synchronized -- bool in
     1 +
   end drop
 end
-100 while is_synchronized lnot do
-  simulate drop
-  1 +
+
+proc main in
+  read_input
+  //dump_data
+  0 // stk: acc
+  0 while dup 100 < do // stk: acc idx
+    swap simulate + swap
+  //  "Iteration: " puts dup 1 + print
+  //  dump_data
+    1 +
+  end drop
+  print
+
+  // Part 2, assume it wasn't reached in first 100
+  100 while is_synchronized lnot do
+    simulate drop
+    1 +
+  end
+  print
 end
-print

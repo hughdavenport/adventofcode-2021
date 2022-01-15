@@ -1,99 +1,101 @@
 include "day-08-procs.porth"
 
-read_stdin_to_str dup @Str input !Str
+proc main in
+  read_stdin_to_str dup @Str input !Str
 
-// Part 1
-0 // stk: input_start sum
-while line input str-chop-line len(line) 0 > do
-  '|' split line str-chop-by-delim // line has right side, split has left side
-  line str-trim-left
-  0 while dup 4 < do // stk: input_start sum idx
-    word line str-chop-word
-    len(word) 2 =
-    len(word) 4 = lor
-    len(word) 3 = lor
-    len(word) 7 = lor if
-      swap 1 + swap
-    end
-    1 +
-  end drop // stk: input_start sum
-end
-print // stk: input_start
-
-// Part 2
-@Str input !Str
-0 // stk: sum
-while line input str-chop-line len(line) 0 > do
-  sizeof(Str) 3 * 0 size_5_digits memset drop
-  sizeof(Str) 3 * 0 size_6_digits memset drop
-  sizeof(Str) 10 * 0 digits memset drop
-  '|' split line str-chop-by-delim // line has right side, split has left side
-
-  // Look at left hand side first, using part 1 technique to get 1 4 7 8
-  while word split str-chop-word len(word) 0 > do
-         len(word) 2 = if  @word 1 !digits[i]
-    else len(word) 4 = if* @word 4 !digits[i]
-    else len(word) 3 = if* @word 7 !digits[i]
-    else len(word) 7 = if* @word 8 !digits[i]
-    else
-           len(word) 5 = if
-        size_5_digits while dup @64 0 != do sizeof(Str) swap +ptr end
-        word @Str rot !Str
-      else len(word) 6 = if*
-        size_6_digits while dup @64 0 != do sizeof(Str) swap +ptr end
-        word @Str rot !Str
-      else
-        "Unknown word: " puts @word puts "\n" puts
-      end
-    end
-  end
-
-  // Next get the remaining, by "subtracting" known values from the unknown
-  0 while dup 3 < do // stk: idx
-
-    // Size 5 is 2 3 5, can deduce from 1 and 4
-    dup sizeof(Str) * size_5_digits +ptr
-    dup 1 digits[i] str-len-diff 3 = if // This is a 3, others have 4 left
-      @Str 3 !digits[i]
-    else dup 4 digits[i] str-len-diff 3 = if*
-      @Str 2 !digits[i]
-    else dup 4 digits[i] str-len-diff 2 = if*
-      @Str 5 !digits[i]
-    else drop
-    end
-
-    // Size 6 is 0 6 9, can deduce from 4 and 7
-    dup sizeof(Str) * size_6_digits +ptr
-    dup 4 digits[i] str-len-diff 2 = if // This is a 9, as there is 2 set in 9 that isn't set in 4, others have 3
-      @Str 9 !digits[i]
-    else dup 7 digits[i] str-len-diff 4 = if*
-      @Str 6 !digits[i]
-    else dup 7 digits[i] str-len-diff 3 = if*
-      @Str 0 !digits[i]
-    else drop
-    end
-
-    1 +
-  end drop
-
-//  dump-digits
-
-  line str-trim-left
-  0 // stk: sum value
-  0 while dup 4 < do // stk: sum value idx
-    word line str-chop-word
-//    "Checking word " puts @word puts "\n" puts
-    0 while dup 10 < do // stk: sum value idx digit
-      dup digits[i] word str-len-diff 0 =
-      over digits[i] word swap str-len-diff 0 =
-      land if
-//        "Got digit " puts dup print
-        rot 10 * over + rot rot
+  // Part 1
+  0 // stk: input_start sum
+  while line input str-chop-line len(line) 0 > do
+    '|' split line str-chop-by-delim // line has right side, split has left side
+    line str-trim-left
+    0 while dup 4 < do // stk: input_start sum idx
+      word line str-chop-word
+      len(word) 2 =
+      len(word) 4 = lor
+      len(word) 3 = lor
+      len(word) 7 = lor if
+        swap 1 + swap
       end
       1 +
-    end drop // stk: sum value idx
-    1 +
-  end drop // stk: sum value
-  +
+    end drop // stk: input_start sum
+  end
+  print // stk: input_start
+
+  // Part 2
+  @Str input !Str
+  0 // stk: sum
+  while line input str-chop-line len(line) 0 > do
+    sizeof(Str) 3 * 0 size_5_digits memset drop
+    sizeof(Str) 3 * 0 size_6_digits memset drop
+    sizeof(Str) 10 * 0 digits memset drop
+    '|' split line str-chop-by-delim // line has right side, split has left side
+
+    // Look at left hand side first, using part 1 technique to get 1 4 7 8
+    while word split str-chop-word len(word) 0 > do
+           len(word) 2 = if  @word 1 !digits[i]
+      else len(word) 4 = if* @word 4 !digits[i]
+      else len(word) 3 = if* @word 7 !digits[i]
+      else len(word) 7 = if* @word 8 !digits[i]
+      else
+             len(word) 5 = if
+          size_5_digits while dup @64 0 != do sizeof(Str) swap +ptr end
+          word @Str rot !Str
+        else len(word) 6 = if*
+          size_6_digits while dup @64 0 != do sizeof(Str) swap +ptr end
+          word @Str rot !Str
+        else
+          "Unknown word: " puts @word puts "\n" puts
+        end
+      end
+    end
+
+    // Next get the remaining, by "subtracting" known values from the unknown
+    0 while dup 3 < do // stk: idx
+
+      // Size 5 is 2 3 5, can deduce from 1 and 4
+      dup sizeof(Str) * size_5_digits +ptr
+      dup 1 digits[i] str-len-diff 3 = if // This is a 3, others have 4 left
+        @Str 3 !digits[i]
+      else dup 4 digits[i] str-len-diff 3 = if*
+        @Str 2 !digits[i]
+      else dup 4 digits[i] str-len-diff 2 = if*
+        @Str 5 !digits[i]
+      else drop
+      end
+
+      // Size 6 is 0 6 9, can deduce from 4 and 7
+      dup sizeof(Str) * size_6_digits +ptr
+      dup 4 digits[i] str-len-diff 2 = if // This is a 9, as there is 2 set in 9 that isn't set in 4, others have 3
+        @Str 9 !digits[i]
+      else dup 7 digits[i] str-len-diff 4 = if*
+        @Str 6 !digits[i]
+      else dup 7 digits[i] str-len-diff 3 = if*
+        @Str 0 !digits[i]
+      else drop
+      end
+
+      1 +
+    end drop
+
+  //  dump-digits
+
+    line str-trim-left
+    0 // stk: sum value
+    0 while dup 4 < do // stk: sum value idx
+      word line str-chop-word
+  //    "Checking word " puts @word puts "\n" puts
+      0 while dup 10 < do // stk: sum value idx digit
+        dup digits[i] word str-len-diff 0 =
+        over digits[i] word swap str-len-diff 0 =
+        land if
+  //        "Got digit " puts dup print
+          rot 10 * over + rot rot
+        end
+        1 +
+      end drop // stk: sum value idx
+      1 +
+    end drop // stk: sum value
+    +
+  end
+  print
 end
-print

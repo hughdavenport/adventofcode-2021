@@ -2,7 +2,7 @@
 FAIL=0
 FAILED=()
 SIMULATE=0
-TIMEOUT=0
+TIMEOUT="5m"
 
 # Colors for printing pass/fail
 GREEN=$(tput setaf 64)
@@ -82,7 +82,6 @@ test_inputs() {
 }
 
 PORTH="${HOME}/src/porth/porth"
-PORTH_PY="${HOME}/src/porth/porth.py"
 START=01
 END=25
 [ -n "$1" ] && case $1 in ''|*[!0-9]*) ;; *) START=$1; END=$1; ;; esac
@@ -105,18 +104,6 @@ for DAY in $(seq -w "${START}" "${END}"); do
     }
   else
     fail "${PORTH} com -s \"$PORTH_FILE\""
-  fi
-  echo -n "Testing compiling ${PORTH_FILE} against porth.py: "
-  rm ./day-${DAY} 2>/dev/null; ${PORTH_PY} com -s "$PORTH_FILE"
-  if [ $? -eq 0 -a -x ./day-${DAY} ]; then
-    pass
-    test_inputs "./day-${DAY}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
-    [ $SIMULATE -eq 1 ] && {
-      echo "Testing sim mode"
-      test_inputs "${PORTH_PY} sim ${PORTH_FILE}" "${INPUT_PREFIX}" "${OUTPUT_PREFIX}" "${2}"
-    }
-  else
-    fail "${PORTH_PY} com -s \"$PORTH_FILE\""
   fi
 done
 echo -n "Overall: "

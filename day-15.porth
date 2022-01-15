@@ -13,20 +13,6 @@ memory data sizeof(int) N * N * end
 memory width sizeof(int) end
 memory height sizeof(int) end
 
-read_stdin_to_str @Str input !Str
-0 // y
-while len(input) 0 > do
-  line input str-chop-line
-  0 // x
-  while len(line) 0 > do
-    2dup swap width @64 * + sizeof(int) * data +ptr
-    line @Str.data @8 '0' - swap !64
-    line str-chop-one-left
-    1 +
-  end width !64
-  1 +
-end height !64
-
 proc idx int int -- int in // y x
   swap width @64 * +
 end
@@ -56,7 +42,6 @@ proc h int -- int in
   y_x width @64 swap - swap height @64 swap - +
 end
 memory q sizeof(List) end
-sizeof(int) q list_init
 memory in_q sizeof(bool) N * N * end
 proc @in_q int -- bool in sizeof(bool) * in_q +ptr @bool end
 proc !in_q bool int in sizeof(bool) * in_q +ptr !bool end
@@ -262,8 +247,25 @@ proc extend_map in
 //  dump_data
 end
 
-solve
+proc main in
+  sizeof(int) q list_init
+  read_stdin_to_str @Str input !Str
+  0 // y
+  while len(input) 0 > do
+    line input str-chop-line
+    0 // x
+    while len(line) 0 > do
+      2dup swap width @64 * + sizeof(int) * data +ptr
+      line @Str.data @8 '0' - swap !64
+      line str-chop-one-left
+      1 +
+    end width !64
+    1 +
+  end height !64
 
-extend_map
+  solve
 
-solve
+  extend_map
+
+  solve
+end

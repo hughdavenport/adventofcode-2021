@@ -176,7 +176,6 @@ proc parse_input -- ptr in
 end
 
 memory q sizeof(List) end
-sizeof(ptr) q list_init
 
 proc _heapify int in // idx
   dup dup q list_get cast(ptr) f
@@ -347,10 +346,8 @@ proc get_neighbours ptr ptr in
 end
 
 memory visited sizeof(ptr) end
-set_new visited !ptr
 
 memory neighbours sizeof(List) end
-sizeof(ptr) neighbours list_init
 proc solve ptr -- ptr in
   memory solved sizeof(bool) end
   false solved !bool
@@ -426,8 +423,13 @@ proc add_part2 ptr -- ptr in
   node @ptr
 end
 
-parse_input
-dup copy_node
-solve
-@Node.g print
-add_part2 solve @Node.g print
+proc main in
+  sizeof(ptr) q list_init
+  set_new visited !ptr
+  sizeof(ptr) neighbours list_init
+  parse_input
+  dup copy_node
+  solve
+  @Node.g print
+  add_part2 solve @Node.g print
+end
