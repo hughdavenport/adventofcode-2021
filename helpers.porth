@@ -180,6 +180,16 @@ proc font_bold in
   argvp @ptr argvp exe_fork
 end
 
+proc font_green in
+  memory argvp sizeof(ptr) 5 * end
+  "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr
+  font_tput_term_arg argvp 1 8 * ptr+ !ptr
+  "setaf"c argvp 2 8 * ptr+ !ptr
+  "64"c argvp 3 8 * ptr+ !ptr
+  NULL argvp 4 8 * ptr+ !ptr
+  argvp @ptr argvp exe_fork
+end
+
 proc font_red in
   memory argvp sizeof(ptr) 5 * end
   "/usr/bin/tput"c argvp 0 8 * ptr+ !ptr
@@ -251,8 +261,13 @@ proc abs int -- int in
   dup 0 < if 0 1 - * end
 end
 
+proc xor int int -- int in
+  2dup or rot rot and not and
+end
+
 // My custom std
 include "std/malloc.porth"
 include "std/stack.porth"
 include "std/list.porth"
 include "std/map.porth"
+include "std/set.porth"

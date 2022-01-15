@@ -145,6 +145,19 @@ proc node= ptr ptr -- bool in
   sizeof(Node.map) rot Node.map rot Node.map memcmp 0 =
 end
 
+proc node_hash ptr -- ptr in
+  sizeof(Hash) malloc
+  sizeof(Node.map) over !Hash.len
+  over Node.map over !Hash.ptr
+  // make a hash
+  0 over !Hash.hash
+  dup @Hash.ptr over @Hash.len ptr+ 1 ptr- while over @Hash.ptr over ptr!= do
+    over over over @Hash.hash swap @8 31 * + swap !Hash.hash
+    1 ptr-
+  end drop
+  swap drop
+end
+
 proc parse_input -- ptr in
   memory node sizeof(ptr) end
   new_node node !ptr
@@ -333,19 +346,8 @@ proc get_neighbours ptr ptr in
   end drop
 end
 
-memory visited sizeof(List) end
-sizeof(ptr) visited list_init
-proc in_visited ptr -- bool in
-  memory node sizeof(ptr) end
-  node !ptr
-  false
-  0 while over lnot over visited @List.count < land do
-    dup visited list_get cast(ptr) node @ptr node= if
-      swap drop true swap
-    end
-    1 +
-  end drop
-end
+memory visited sizeof(ptr) end
+set_new visited !ptr
 
 memory neighbours sizeof(List) end
 sizeof(ptr) neighbours list_init
@@ -355,13 +357,13 @@ proc solve ptr -- ptr in
   memory current sizeof(ptr) end
   current !ptr
   current @ptr cast(int) q list_add heapify
-  current @ptr cast(int) visited list_add
+  current @ptr node_hash visited @ptr set_add
   while q @List.count 0 > do
     0 q list_get cast(ptr) current !ptr
     current @ptr is_solved if
       true solved !bool
-      visited list_free
-      sizeof(ptr) visited list_init
+      visited @ptr set_free
+      visited @ptr set_init
       0 q !List.count // break
     else
       q @List.count 1 > if
@@ -374,16 +376,17 @@ proc solve ptr -- ptr in
       current @ptr neighbours get_neighbours
       0 while dup neighbours @List.count < do
         dup neighbours list_get cast(ptr)
-        dup in_visited lnot if
+        dup node_hash visited @ptr set_contains lnot if
           dup is_solved if
             true solved !bool
             current !ptr
             0 q !List.count
-            sizeof(ptr) visited list_init
+            visited @ptr set_free
+            visited @ptr set_init
             drop neighbours @List.count
           else
             dup cast(int) q list_add heapify
-            cast(int) visited list_add
+            node_hash visited @ptr set_add
           end
         else free end
         1 +

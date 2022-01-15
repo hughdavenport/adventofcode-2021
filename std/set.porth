@@ -1,0 +1,268 @@
+// Hash set implementation
+// The user needs to create a Hash to wrap their data
+const offsetof(Hash.hash) sizeof(int) offset end
+const offsetof(Hash.len) sizeof(int) offset end
+const offsetof(Hash.ptr) sizeof(ptr) offset end
+const sizeof(Hash) reset end
+proc Hash.hash ptr -- ptr in offsetof(Hash.hash) ptr+ end
+proc @Hash.hash ptr -- int in Hash.hash @int end
+proc !Hash.hash int ptr in Hash.hash !int end
+proc Hash.len ptr -- ptr in offsetof(Hash.len) ptr+ end
+proc @Hash.len ptr -- int in Hash.len @int end
+proc !Hash.len int ptr in Hash.len !int end
+proc Hash.ptr ptr -- ptr in offsetof(Hash.ptr) ptr+ end
+proc @Hash.ptr ptr -- ptr in Hash.ptr @ptr end
+proc !Hash.ptr ptr ptr in Hash.ptr !ptr end
+
+proc _hash= ptr ptr -- bool in
+  over @Hash.ptr over @Hash.ptr ptr= if
+    drop drop true
+  else
+    over @Hash.hash over @Hash.hash = if
+      over @Hash.len over @Hash.len = if
+        over @Hash.len rot rot
+        swap @Hash.ptr swap @Hash.ptr memcmp 0 =
+      else drop drop false end
+    else drop drop false end
+  end
+end
+
+proc _hash_hash ptr -- int in
+  // Adapted from openjdk
+  // https://github.com/openjdk-mirror/jdk7u-jdk/blob/master/src/share/classes/java/util/HashMap.java#L264
+  @Hash.hash dup 20 shr over 12 shr xor xor
+             dup 7 shr over 4 shr xor xor
+end
+
+proc hash_dump ptr in
+  "Hash entry:\n" puts
+  " addr: " puts dup print
+  " hash: " puts dup @Hash.hash print
+  "  len: " puts dup @Hash.len print
+  "  ptr: " puts dup @Hash.ptr print
+  " data: [" puts
+  0 while over @Hash.len over > do
+    dup 0 != if ", " puts end
+    over @Hash.ptr over ptr+ @8 putu
+    1 +
+  end drop
+  "]\n" puts
+  "  str: " puts dup @Hash.len over @Hash.ptr puts newline
+  drop
+end
+
+const SET_INITIAL_CAP 16 end
+
+const offsetof(Set.cap) sizeof(int) offset end
+const offsetof(Set.count) sizeof(int) offset end
+const offsetof(Set.data) sizeof(ptr) offset end
+const sizeof(Set) reset end
+proc Set.cap ptr -- ptr in offsetof(Set.cap) ptr+ end
+proc @Set.cap ptr -- int in Set.cap @int end
+proc !Set.cap int ptr in Set.cap !int end
+proc Set.count ptr -- ptr in offsetof(Set.count) ptr+ end
+proc @Set.count ptr -- int in Set.count @int end
+proc !Set.count int ptr in Set.count !int end
+proc Set.data ptr -- ptr in offsetof(Set.data) ptr+ end
+proc @Set.data ptr -- ptr in Set.data @ptr end
+proc !Set.data ptr ptr in Set.data !ptr end
+
+// Internal procs
+proc _set_data_idx ptr ptr -- int in
+  swap _hash_hash swap @Set.cap %
+end
+
+proc _set_data_ptr_from_idx int ptr -- ptr in
+  swap sizeof(Hash) * swap @Set.data +ptr
+end
+
+proc _set_data_idx_from_ptr ptr ptr -- int in
+  @Set.data ptr-diff sizeof(Hash) /
+end
+
+proc _set_data_ptr ptr ptr -- ptr in
+  dup rot rot _set_data_idx swap _set_data_ptr_from_idx
+end
+
+proc set_dump ptr in
+  memory first sizeof(bool) end true first !bool
+  "Set: (" puts dup @Set.count putu ") [" puts
+  dup @Set.cap 1 - while dup 0 >= do
+    over over swap _set_data_ptr_from_idx @ptr
+    dup NULL ptr!= if
+      first @bool if false first !bool else ", " puts end
+      over "(" puts putu ") " puts dup cast(int) putu " \"" puts dup @Hash.len swap @Hash.ptr puts "\"" puts
+    else drop end
+    1 -
+  end drop
+  "]\n" puts
+  drop
+end
+
+proc _set_add ptr ptr in
+  memory set sizeof(ptr) end set !ptr
+  memory p sizeof(ptr) end p !ptr
+  // check collisions by going to next idx, stop at NULL
+  p @ptr set @ptr _set_data_ptr
+  dup @ptr NULL ptr= if
+    p @ptr swap !ptr
+  else
+    set @ptr _set_data_idx_from_ptr
+    dup 1 + while over over != do
+      dup set @ptr _set_data_ptr_from_idx
+      dup @ptr NULL ptr= if
+        p @ptr swap !ptr
+        drop dup 1 -
+      else drop end
+      1 + set @ptr @Set.cap %
+    end drop drop
+  end
+  set @ptr Set.count inc64
+end
+
+proc _set_get_entry ptr ptr -- ptr in
+  memory set sizeof(ptr) end set !ptr
+  memory p sizeof(ptr) end p !ptr
+  NULL
+  p @ptr set @ptr _set_data_ptr
+  dup @ptr NULL ptr= if
+    drop
+  else dup @ptr p @ptr _hash= if*
+    swap drop
+  else
+    set @ptr _set_data_idx_from_ptr
+    dup 1 + while over over != do
+      dup set @ptr _set_data_ptr_from_idx
+      dup @ptr NULL ptr= if
+        drop drop dup 1 -
+      else dup @ptr p @ptr _hash= if*
+        swap drop rot drop swap dup 1 -
+      else drop end
+      1 + set @ptr @Set.cap %
+    end drop drop
+  end
+end
+
+proc _set_remove ptr ptr in
+  memory set sizeof(ptr) end set !ptr
+  memory p sizeof(ptr) end p !ptr
+  // check collisions by going to next idx, stop at NULL
+  p @ptr set @ptr _set_get_entry
+  dup NULL ptr!= if
+    NULL over !ptr
+    set @ptr _set_data_idx_from_ptr
+    // Step through until NULL (or loops round)
+    // If item is collided, rehash it, it may uncollide now
+    dup 1 + set @ptr @Set.cap % while over over != do
+      dup set @ptr _set_data_ptr_from_idx
+      dup @ptr NULL ptr= if
+        drop drop dup 1 - // break
+      else dup @ptr set @ptr _set_data_ptr over ptr= if*
+        drop // This item is not collided
+      else
+        set @ptr Set.count dec64
+        dup @ptr swap NULL swap !ptr set @ptr _set_add
+      end
+      1 + set @ptr @Set.cap %
+    end drop
+    set @ptr Set.count dec64
+  end drop
+end
+
+proc _set_expand ptr in
+//  "_set_expand called\n" puts
+  memory set sizeof(ptr) end set !ptr
+  set @ptr @Set.data // Get old data
+  set @ptr @Set.cap 2 * set @ptr !Set.cap
+  set @ptr @Set.cap sizeof(Hash) calloc
+  dup NULL ptr= if
+    "ERROR: _set_expand failed to malloc\n" eputs 1 exit
+  end
+  set @ptr !Set.data
+  0 set @ptr !Set.count
+  // rehash things
+  set @ptr @Set.cap 2 / 1 - while dup 0 >= do
+    // old idx
+    over over sizeof(Hash) * ptr+ @ptr dup NULL ptr!= if
+      set @ptr _set_add
+    else drop end
+    1 -
+  end drop
+  free
+end
+
+
+// Public procs
+proc set_valid ptr -- bool in
+  memory set sizeof(ptr) end set !ptr
+  true
+  0 while over over set @ptr @Set.cap < land do
+    dup set @ptr _set_data_ptr_from_idx
+    dup _malloc_in_range lnot if
+      here eputs " ERROR: Not a valid pointer " eputs cast(int) eputu "\n" eputs
+      swap drop false swap
+    else dup @ptr NULL ptr!= if*
+      @ptr dup set @ptr _set_get_entry
+      dup NULL ptr= if
+        here eputs " ERROR: Couldn't find reverse entry for " eputs over cast(int) eputu "\n" eputs
+        drop drop false
+      else
+        @ptr ptr=
+      end
+      rot drop swap
+    else drop end
+    1 +
+  end
+  over lnot if
+    1 - here puts " NOTE, collided record is:\n" puts
+    dup set @ptr _set_data_ptr_from_idx _malloc_in_range if
+      dup print
+      dup set @ptr _set_data_ptr_from_idx @ptr print
+      dup set @ptr _set_data_ptr_from_idx @ptr set @ptr _set_get_entry NULL ptr!= if
+        dup set @ptr _set_data_ptr_from_idx @ptr set @ptr _set_get_entry @ptr print
+        dup set @ptr _set_data_ptr_from_idx @ptr set @ptr _set_get_entry set @ptr _set_data_idx_from_ptr print
+      end
+      dup set @ptr _set_data_ptr_from_idx @ptr hash_dump
+      set @ptr set_dump
+    end
+  end drop
+end
+
+proc set_init ptr in
+  0 over !Set.count
+  SET_INITIAL_CAP over !Set.cap
+  dup @Set.cap sizeof(Hash) calloc
+  dup NULL ptr= if
+    "ERROR: set_init failed to malloc\n" eputs 1 exit
+  end
+  over !Set.data
+  set_valid lnot if here eputs " ERROR: list is not valid\n" eputs 1 exit end
+end
+
+proc set_new -- ptr in
+  sizeof(Set) malloc dup set_init
+  dup set_valid lnot if here eputs " ERROR: list is not valid\n" eputs 1 exit end
+end
+
+proc set_free ptr in
+  @Set.data free
+end
+
+proc set_contains ptr ptr -- bool in
+  dup rot swap _set_get_entry NULL ptr!=
+  swap set_valid lnot if here eputs " ERROR: list is not valid\n" eputs 1 exit end
+end
+
+proc set_add ptr ptr in
+  // FIXME: can overflow multiplication
+  dup @Set.cap 3 * 4 / over @Set.count < if
+    dup _set_expand
+  end
+  dup rot swap _set_add
+  set_valid lnot if here eputs " ERROR: list is not valid\n" eputs 1 exit end
+end
+
+proc set_remove ptr ptr in
+  dup rot swap _set_remove
+  set_valid lnot if here eputs " ERROR: list is not valid\n" eputs 1 exit end
+end

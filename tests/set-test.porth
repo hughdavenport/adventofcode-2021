@@ -1,0 +1,132 @@
+include "helpers.porth"
+
+memory set sizeof(ptr) end
+set_new set !ptr
+
+"Empty set\n" puts
+set @ptr set_dump
+
+proc str_hash int ptr -- ptr in
+  memory ret sizeof(ptr) end
+  sizeof(Hash) 1 calloc ret !ptr
+  ret @ptr NULL ptr= if
+    "ERROR: str_hashing could not malloc\n" eputs
+    1 exit
+  end
+  // Adapted from openjdk
+  // https://github.com/openjdk-mirror/jdk7u-jdk/blob/master/src/share/classes/java/lang/String.java#L1494
+  ret @ptr !Hash.ptr ret @ptr !Hash.len
+  0 while dup ret @ptr @Hash.len < do
+    ret @ptr @Hash.ptr over ptr+ @8
+    ret @ptr @Hash.hash 31 * + ret @ptr !Hash.hash
+    1 +
+  end drop
+  ret @ptr
+end
+
+proc hash_str ptr -- int ptr in
+  dup @Hash.len swap @Hash.ptr
+end
+
+"abc" str_hash
+dup set @ptr set_add
+"Added string `abc`\n" puts
+set @ptr set_dump
+
+"Same string hash testing contains: " puts
+dup set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Same string, diff hash testing contains: " puts
+"abc" str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Shorter string (should fail): " puts
+"ab" str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Longer string with same prefix (should fail): " puts
+"abc " str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Removing hash by same hash (contains should fail): " puts
+dup set @ptr set_remove dup set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Re-adding it, contains should pass again: " puts
+dup set @ptr set_add dup set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Removing hash by diff hash (contains should fail): " puts
+"abc" str_hash set @ptr set_remove dup set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Re-adding it, testing diff string with same hash, i.e. collision (should fail): " puts
+dup set @ptr set_add "invalid" str_hash over @Hash.hash over !Hash.hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Size should be 1 now: " puts set @ptr @Set.count print
+set @ptr set_remove
+"Size should be 0 now: " puts set @ptr @Set.count print
+"Adding a bunch of things\n" puts
+"Cap should be < 26 before: " puts set @ptr @Set.cap 26 <
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Testing contains a while adding, it should pass 26 times\n" puts
+0 while dup 26 < do // should cause a expand or two
+  1 malloc over 'a' + over !8 1 swap str_hash set @ptr set_add
+  "a" str_hash set @ptr set_contains
+  if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+  1 +
+end drop
+"It should now contain a: " puts
+"a" str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"It should now contain b: " puts
+"b" str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"It should now contain z: " puts
+"z" str_hash set @ptr set_contains
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+
+"Size should be 26 now: " puts set @ptr @Set.count 26 =
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Cap should be > 26 now: " puts set @ptr @Set.cap 26 >
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+set @ptr set_dump
+"Removing the same things with diff hash objects\n" puts
+0 while dup 26 < do // should cause a expand or two
+  1 malloc over 'a' + over !8 1 swap str_hash
+//  dup hash_str puts newline
+  dup set @ptr set_contains
+  if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+  set @ptr set_remove
+  1 +
+end drop
+"Size should be 0 now: " puts set @ptr @Set.count 0 =
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Cap should be > 26 still: " puts set @ptr @Set.cap 26 >
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+set @ptr set_dump
+"Adding a bunch of things with same hash\n" puts
+0 while dup 26 < do // should cause a expand or two
+  1 malloc over 'a' + over !8 1 swap str_hash dup 0 swap !Hash.hash set @ptr set_add
+  1 +
+end drop
+"Size should be 26 again: " puts set @ptr @Set.count 26 =
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Cap should be > 26 still: " puts set @ptr @Set.cap 26 >
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+set @ptr set_dump
+"Removing them again\n" puts
+0 while dup 26 < do // should cause a expand or two
+  1 malloc over 'a' + over !8 1 swap str_hash dup 0 swap !Hash.hash
+//  dup hash_str puts newline
+  dup set @ptr set_contains
+  if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+  set @ptr set_remove
+  1 +
+end drop
+"Size should be 0 now: " puts set @ptr @Set.count 0 =
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+"Cap should be > 26 still: " puts set @ptr @Set.cap 26 >
+if font_green "OK\n" else font_red "FAIL\n" end puts font_reset
+set @ptr set_dump

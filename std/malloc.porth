@@ -32,6 +32,7 @@ inline proc !Malloc.next ptr ptr in Malloc.next !ptr end
 inline proc @Malloc.prev ptr -- ptr in Malloc.prev @ptr end
 inline proc !Malloc.prev ptr ptr in Malloc.prev !ptr end
 
+memory _malloc_inited sizeof(bool) end
 inline proc _malloc_init in
   MALLOC_MAX_CAP sizeof(Malloc) - _malloc_base !Malloc.length
   true _malloc_base !Malloc.free
@@ -40,8 +41,8 @@ inline proc _malloc_init in
   _malloc_base _malloc_freelist !ptr
   1 _malloc_freelist_size !int
   _malloc_freelist _malloc_base cast(int) _malloc_freelist_idx !ptr
+  true _malloc_inited !bool
 end
-_malloc_init
 
 proc dump_malloc_entry ptr in
   dup NULL ptr!= if
@@ -406,6 +407,7 @@ proc _malloc_join_to_prev_free_if_possible ptr in
 end
 
 proc malloc int -- ptr in
+  _malloc_inited @bool lnot if _malloc_init end
   memory len sizeof(int) end len !int
   memory ret sizeof(ptr) end
   _malloc_is_valid lnot if
@@ -434,6 +436,7 @@ proc malloc int -- ptr in
 end
 
 proc free ptr in
+  _malloc_inited @bool lnot if _malloc_init end
   memory data sizeof(ptr) end data !ptr
   memory entry sizeof(ptr) end data @ptr sizeof(Malloc) ptr- entry !ptr
   _malloc_is_valid lnot if
@@ -459,6 +462,7 @@ end
 inline proc calloc int int -- ptr in * 0 over malloc memset end
 
 proc realloc int ptr -- ptr in
+  _malloc_inited @bool lnot if _malloc_init end
   memory data sizeof(ptr) end data !ptr
   memory entry sizeof(ptr) end data @ptr sizeof(Malloc) ptr- entry !ptr
   memory len sizeof(int) end len !int
